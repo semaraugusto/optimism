@@ -277,6 +277,12 @@ contract Deploy is Deployer {
         vm.dumpState(Config.stateDumpPath(""));
     }
 
+    function runL1OnlyWithStateDump() public {
+        vm.chainId(cfg.l1ChainID());
+        _l1OnlyRun();
+        vm.dumpState(Config.stateDumpPath(""));
+    }
+
     /// @notice Deploy all L1 contracts and write the state diff to a file.
     function runWithStateDiff() public stateDiff {
         _run();
@@ -297,6 +303,25 @@ contract Deploy is Deployer {
             }
         }
         setupOpChain();
+        console.log("set up op chain!");
+    }
+
+    /// @notice Internal function containing only the fault proof related deploy logic.
+    function _l1OnlyRun() internal virtual {
+        console.log("start of L1 Deploy!");
+        deploySafe("SystemOwnerSafe");
+        console.log("deployed Safe!");
+        setupSuperchain();
+        console.log("set up superchain!");
+        if (cfg.usePlasma()) {
+            bytes32 typeHash = keccak256(bytes(cfg.daCommitmentType()));
+            bytes32 keccakHash = keccak256(bytes("KeccakCommitment"));
+            if (typeHash == keccakHash) {
+                setupOpPlasma();
+            }
+        }
+        setupOpChain();
+        setupL1OpChain();
         console.log("set up op chain!");
     }
 
@@ -327,6 +352,29 @@ contract Deploy is Deployer {
         deployERC1967Proxy("ProtocolVersionsProxy");
         deployProtocolVersions();
         initializeProtocolVersions();
+    }
+
+    /// @notice Deploy a new OP Chain, with an existing SuperchainConfig provided
+    function setupL1OpChain() public {
+        console.log("Deploying OP Chain");
+
+        // Ensure that the requisite contracts are deployed
+        mustGetAddress("SuperchainConfigProxy");
+        mustGetAddress("SystemOwnerSafe");
+        mustGetAddress("AddressManager");
+        mustGetAddress("ProxyAdmin");
+
+        deployProxies();
+        deployFaultProofImpls();
+        initializeFPImplementations();
+
+        setAlphabetFaultGameImplementation({ _allowUpgrade: false });
+        setFastFaultGameImplementation({ _allowUpgrade: false });
+        setCannonFaultGameImplementation({ _allowUpgrade: false });
+        setPermissionedCannonFaultGameImplementation({ _allowUpgrade: false });
+
+        transferDisputeGameFactoryOwnership();
+        transferDelayedWETHOwnership();
     }
 
     /// @notice Deploy a new OP Chain, with an existing SuperchainConfig provided
@@ -374,9 +422,9 @@ contract Deploy is Deployer {
         transferAddressManagerOwnership(); // to the ProxyAdmin
     }
 
-    /// @notice Deploy all of the implementations
-    function deployImplementations() public {
-        console.log("Deploying implementations");
+    /// @notice Deploy OpChain related implementations
+    function deployOpChainImpls() public {
+        console.log("Deploying OpChain implementations");
         deployL1CrossDomainMessenger();
         deployOptimismMintableERC20Factory();
         deploySystemConfig();
@@ -384,7 +432,11 @@ contract Deploy is Deployer {
         deployL1ERC721Bridge();
         deployOptimismPortal();
         deployL2OutputOracle();
+    }
 
+    /// @notice Deploy fault proof related implementations
+    function deployFaultProofImpls() public {
+        console.log("Deploying OpChain implementations");
         // Fault proofs
         deployOptimismPortal2();
         deployDisputeGameFactory();
@@ -392,6 +444,36 @@ contract Deploy is Deployer {
         deployPreimageOracle();
         deployMips();
         deployAnchorStateRegistry();
+    }
+
+    /// @notice Deploy all of the implementations
+    function deployImplementations() public {
+        console.log("Deploying implementations");
+        deployOpChainImpls();
+        deployFaultProofImpls();
+    }
+
+    /// @notice Initialize fault proof related implementations
+    function initializeFPImplementations() public {
+        console.log("Initializing implementations");
+        // Selectively initialize either the original OptimismPortal or the new OptimismPortal2. Since this will upgrade
+        // the proxy, we cannot initialize both.
+        if (cfg.useFaultProofs()) {
+            console.log("Fault proofs enabled. Initializing the OptimismPortal proxy with the OptimismPortal2.");
+            initializeOptimismPortal2();
+        } else {
+            initializeOptimismPortal();
+        }
+
+        initializeSystemConfig();
+        // initializeL1StandardBridge();
+        // initializeL1ERC721Bridge();
+        // initializeOptimismMintableERC20Factory();
+        // initializeL1CrossDomainMessenger();
+        // initializeL2OutputOracle();
+        initializeDisputeGameFactory();
+        initializeDelayedWETH();
+        initializeAnchorStateRegistry();
     }
 
     /// @notice Initialize all of the implementations

@@ -204,6 +204,50 @@ func (h *FactoryHelper) StartOutputAlphabetGameWithCorrectRoot(ctx context.Conte
 	return h.StartOutputAlphabetGame(ctx, l2Node, l2BlockNumber, common.Hash(output.OutputRoot))
 }
 
+type L1OnlyOutputAlphabetGameHelper struct {
+	OutputGameHelper
+}
+
+func (h *FactoryHelper) StartL1OnlyOutputAlphabetGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
+	cfg := NewGameCfg(opts...)
+	logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
+	// rollupClient := h.System.RollupClient(l2Node)
+	// l2Client := h.System.NodeClient(l2Node)
+
+	extraData := h.CreateBisectionGameExtraData(l2Node, l2BlockNumber, cfg)
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	tx, err := transactions.PadGasEstimate(h.Opts, 2, func(opts *bind.TransactOpts) (*types.Transaction, error) {
+		return h.Factory.Create(opts, alphabetGameType, rootClaim, extraData)
+	})
+	h.Require.NoError(err, "create output bisection game")
+	rcpt, err := wait.ForReceiptOK(ctx, h.Client, tx.Hash())
+	h.Require.NoError(err, "wait for create output bisection game receipt to be OK")
+	h.Require.Len(rcpt.Logs, 2, "should have emitted a single DisputeGameCreated event")
+	createdEvent, err := h.Factory.ParseDisputeGameCreated(*rcpt.Logs[1])
+	h.Require.NoError(err)
+	game, err := contracts.NewFaultDisputeGameContract(ctx, metrics.NoopContractMetrics, createdEvent.DisputeProxy, batching.NewMultiCaller(h.Client.Client(), batching.DefaultBatchSize))
+	h.Require.NoError(err)
+
+	prestateBlock, poststateBlock, err := game.GetBlockRange(ctx)
+	h.Require.NoError(err, "Failed to load starting block number")
+	splitDepth, err := game.GetSplitDepth(ctx)
+	h.Require.NoError(err, "Failed to load split depth")
+	l1Head := h.GetL1Head(ctx, game)
+	// prestateProvider := outputs.NewPrestateProvider(rollupClient, prestateBlock)
+	prestateProvider := outputs.NewMockPrestateProvider(prestateBlock)
+
+	// TODO: These nil values below break some stuff - need to make sure either the functions that are being called are properly mocked
+	provider := outputs.NewTraceProvider(logger, prestateProvider, nil, nil, l1Head, splitDepth, prestateBlock, poststateBlock)
+	// provider := outputs.NewL1OnlyTraceProvider(logger, prestateProvider, l1Head, splitDepth, prestateBlock, poststateBlock)
+
+	return &OutputAlphabetGameHelper{
+		OutputGameHelper: *NewOutputGameHelper(h.T, h.Require, h.Client, h.Opts, h.PrivKey, game, h.FactoryAddr, createdEvent.DisputeProxy, provider, h.System),
+	}
+}
+
 func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
 	cfg := NewGameCfg(opts...)
 	logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")

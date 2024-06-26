@@ -36,6 +36,14 @@ test-fault-proofs: pre-test
 	$(go_test) $(go_test_flags) ./faultproofs
 .PHONY: test-faultproofs
 
+test-fp: pre-test
+	$(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWinsAI
+.PHONY: test-faultproofs
+
+test-both: pre-test
+	$(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWins
+.PHONY: test-faultproofs
+
 cannon-prestate:
 	make -C .. cannon-prestate
 .PHONY: cannon-prestate

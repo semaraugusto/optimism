@@ -203,6 +203,10 @@ devnet-allocs: pre-devnet
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --allocs
 .PHONY: devnet-allocs
 
+fp-allocs: pre-devnet
+	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --fp-allocs
+.PHONY: fp-allocs
+
 devnet-logs:
 	@(cd ./ops-bedrock && docker compose logs -f)
 .PHONY: devnet-logs

@@ -33,3 +33,23 @@ func (o *OutputPrestateProvider) outputAtBlock(ctx context.Context, block uint64
 	}
 	return common.Hash(output.OutputRoot), nil
 }
+
+type MockPrestateProvider struct {
+	prestateBlock uint64
+	// rollupClient  OutputRollupClient
+}
+
+func NewMockPrestateProvider(prestateBlock uint64) *MockPrestateProvider {
+	return &MockPrestateProvider{
+		prestateBlock: prestateBlock,
+	}
+}
+
+func (o *MockPrestateProvider) AbsolutePreStateCommitment(ctx context.Context) (hash common.Hash, err error) {
+	// return o.outputAtBlock(ctx, o.prestateBlock)
+	return o.outputAtBlock(ctx, o.prestateBlock)
+}
+
+func (o *MockPrestateProvider) outputAtBlock(ctx context.Context, block uint64) (common.Hash, error) {
+	return common.Hash{}, nil
+}
