@@ -74,6 +74,10 @@ func (o *OutputTraceProvider) HonestBlockNumber(ctx context.Context, pos types.P
 	if err != nil {
 		return 0, err
 	}
+	if o.rollupProvider == nil {
+		o.logger.Warn("rollupProvider is nil - returning claimed block number", "OutputBlock", outputBlock)
+		return outputBlock, nil
+	}
 	resp, err := o.rollupProvider.SafeHeadAtL1Block(ctx, o.l1Head.Number)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get safe head at L1 block %v: %w", o.l1Head, err)
@@ -107,6 +111,7 @@ func (o *OutputTraceProvider) GetL2BlockNumberChallenge(ctx context.Context) (*t
 	if err != nil {
 		return nil, err
 	}
+
 	if claimedBlock == outputBlock {
 		return nil, types.ErrL2BlockNumberValid
 	}
@@ -122,6 +127,10 @@ func (o *OutputTraceProvider) GetL2BlockNumberChallenge(ctx context.Context) (*t
 }
 
 func (o *OutputTraceProvider) outputAtBlock(ctx context.Context, block uint64) (common.Hash, error) {
+	if o.rollupProvider == nil {
+		o.logger.Warn("rollupProvider is nil - returning claimed block number")
+		return common.Hash{}, nil
+	}
 	output, err := o.rollupProvider.OutputAtBlock(ctx, block)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to fetch output at block %v: %w", block, err)
