@@ -40,6 +40,8 @@ var (
 	// in end to end tests.
 
 	// L1Allocs represents the L1 genesis block state.
+	OnlyL1Allocs bool
+	// L1Allocs represents the L1 genesis block state.
 	L1Allocs *foundry.ForgeAllocs
 	// L1Deployments maps contract names to accounts in the L1
 	// genesis block state.
@@ -75,6 +77,7 @@ func init() {
 	defaultL1DeploymentsPath := filepath.Join(root, ".devnet", "addresses.json")
 	defaultDeployConfigPath := filepath.Join(root, "packages", "contracts-bedrock", "deploy-config", "devnetL1.json")
 
+	flag.BoolVar(&OnlyL1Allocs, "only-l1-allocs", false, "")
 	flag.StringVar(&l1AllocsPath, "l1-allocs", defaultL1AllocsPath, "")
 	flag.StringVar(&l2AllocsDir, "l2-allocs-dir", defaultL2AllocsDir, "")
 	flag.StringVar(&l1DeploymentsPath, "l1-deployments", defaultL1DeploymentsPath, "")
@@ -121,9 +124,12 @@ func init() {
 		}
 		l2Allocs[mode] = allocs
 	}
-	mustL2Allocs(genesis.L2AllocsFjord)
-	mustL2Allocs(genesis.L2AllocsEcotone)
-	mustL2Allocs(genesis.L2AllocsDelta)
+	fmt.Println("flag set to: ", OnlyL1Allocs)
+	if !OnlyL1Allocs {
+		mustL2Allocs(genesis.L2AllocsFjord)
+		mustL2Allocs(genesis.L2AllocsEcotone)
+		mustL2Allocs(genesis.L2AllocsDelta)
+	}
 	L1Deployments, err = genesis.NewL1Deployments(l1DeploymentsPath)
 	if err != nil {
 		panic(err)

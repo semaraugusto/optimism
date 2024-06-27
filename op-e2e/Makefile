@@ -36,13 +36,14 @@ test-fault-proofs: pre-test
 	$(go_test) $(go_test_flags) ./faultproofs
 .PHONY: test-faultproofs
 
-test-fp: pre-test
-	$(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWinsAI
-.PHONY: test-faultproofs
+just-test:
+	$(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWinsAI -count=1 -only-l1-allocs=true
+	# $(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWinsAI -count=1 -only-l1-allocs=false
+.PHONY: just-test
 
-test-both: pre-test
-	$(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWins
-.PHONY: test-faultproofs
+test-fp: pre-test
+	$(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWinsAI -count=1
+.PHONY: test-fp
 
 cannon-prestate:
 	make -C .. cannon-prestate

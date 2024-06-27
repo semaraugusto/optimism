@@ -106,6 +106,9 @@ def main():
 
     if args.fp_allocs:
         devnet_fp_l1_allocs(paths)
+        # devnet_l1_allocs(paths)
+        # devnet_l2_allocs(paths)
+        # devnet_fp_l1_allocs(paths)
         return
 
     if args.allocs:
@@ -172,7 +175,7 @@ def devnet_fp_l1_allocs(paths):
         # We need to set the sender here to an account we know the private key of,
         # because the sender ends up being the owner of the ProxyAdmin SAFE
         # (which we need to enable the Custom Gas Token feature).
-        'forge', 'script', fqn, "--sig", "runL1OnlyWithStateDump()", "--sender", "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+        'forge', 'script', fqn, "--sig", "runWithStateDump()", "--sender", "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
     ], env={
       'DEPLOYMENT_OUTFILE': paths.l1_deployments_path,
       'DEPLOY_CONFIG_PATH': paths.devnet_config_path,

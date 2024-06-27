@@ -20,7 +20,9 @@ import (
 func TestOutputAlphabetGame_ChallengerWinsAI(t *testing.T) {
 	op_e2e.InitParallel(t)
 	ctx := context.Background()
-	sys, l1Client := StartFaultDisputeSystem(t)
+	// sys, l1Client := StartFaultDisputeSystem(t)
+	// sys, l1Client := StartFaultDisputeSystem(t)
+	sys, l1Client := StartL1OnlyFaultDisputeSystem(t)
 	// sys, _ := StartFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
 
