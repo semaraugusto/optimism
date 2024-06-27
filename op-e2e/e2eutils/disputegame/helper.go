@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/outputs"
 	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	"github.com/ethereum-optimism/optimism/op-e2e/config"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/disputegame/preimage"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
@@ -286,7 +287,9 @@ func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node stri
 }
 
 func (h *FactoryHelper) CreateBisectionGameExtraData(l2Node string, l2BlockNumber uint64, cfg *GameCfg) []byte {
-	h.WaitForBlock(l2Node, l2BlockNumber, cfg)
+	if !config.OnlyL1Allocs {
+		h.WaitForBlock(l2Node, l2BlockNumber, cfg)
+	}
 	h.T.Logf("Creating game with l2 block number: %v", l2BlockNumber)
 	extraData := make([]byte, 32)
 	binary.BigEndian.PutUint64(extraData[24:], l2BlockNumber)
