@@ -21,6 +21,7 @@ import (
 
 	challenger "github.com/ethereum-optimism/optimism/op-challenger"
 	"github.com/ethereum-optimism/optimism/op-challenger/config"
+	testConfig "github.com/ethereum-optimism/optimism/op-e2e/config"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
@@ -145,10 +146,14 @@ func NewChallenger(t *testing.T, ctx context.Context, sys EndpointProvider, name
 	cfg := NewChallengerConfig(t, sys, "sequencer", options...)
 	cfg.MetricsConfig.Enabled = false // Don't start the metrics server
 	m := NewCapturingMetrics()
+	log.Info("calling challenger.Main")
+	cfg.OnlyL1Allocs = true
 	chl, err := challenger.Main(ctx, log, cfg, m)
 	require.NoError(t, err, "must init challenger")
+	log.Info("calling chl.Start")
 	require.NoError(t, chl.Start(ctx), "must start challenger")
 
+	log.Info("returning NewHelper")
 	return NewHelper(log, t, require.New(t), cfg.Datadir, chl, m)
 }
 
@@ -156,6 +161,11 @@ func NewChallengerConfig(t *testing.T, sys EndpointProvider, l2NodeName string, 
 	// Use the NewConfig method to ensure we pick up any defaults that are set.
 	l1Endpoint := sys.NodeEndpoint("l1")
 	l1Beacon := sys.L1BeaconEndpoint()
+	// if config.OnlyL1Allocs {
+	if testConfig.OnlyL1Allocs {
+		l2NodeName = "mock"
+	}
+	// cfg := config.NewConfig(common.Address{}, l1Endpoint, l1Beacon, sys.RollupEndpoint(l2NodeName), sys.NodeEndpoint(l2NodeName), t.TempDir())
 	cfg := config.NewConfig(common.Address{}, l1Endpoint, l1Beacon, sys.RollupEndpoint(l2NodeName), sys.NodeEndpoint(l2NodeName), t.TempDir())
 	// The devnet can't set the absolute prestate output root because the contracts are deployed in L1 genesis
 	// before the L2 genesis is known.

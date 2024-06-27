@@ -30,6 +30,7 @@ import (
 	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	// "github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 )
 
@@ -86,16 +87,22 @@ func NewService(ctx context.Context, logger log.Logger, cfg *config.Config, m me
 }
 
 func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error {
+	log.Info("Starting initFromConfig")
 	if err := s.initTxManager(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init tx manager: %w", err)
 	}
 	s.initClaimants(cfg)
+	log.Info("Calling initL1Client")
 	if err := s.initL1Client(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init l1 client: %w", err)
 	}
-	if err := s.initRollupClient(ctx, cfg); err != nil {
-		return fmt.Errorf("failed to init rollup client: %w", err)
+	log.Info("Calling initRollupClient")
+	if !cfg.OnlyL1Allocs {
+		if err := s.initRollupClient(ctx, cfg); err != nil {
+			return fmt.Errorf("failed to init rollup client: %w", err)
+		}
 	}
+	log.Info("Calling initPollClient")
 	if err := s.initPollClient(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init poll client: %w", err)
 	}

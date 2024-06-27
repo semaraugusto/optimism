@@ -15,6 +15,11 @@ type OutputPrestateProvider struct {
 	rollupClient  OutputRollupClient
 }
 
+type PrestateProviderInterface interface {
+	AbsolutePreStateCommitment(ctx context.Context) (hash common.Hash, err error)
+	outputAtBlock(ctx context.Context, block uint64) (common.Hash, error)
+}
+
 func NewPrestateProvider(rollupClient OutputRollupClient, prestateBlock uint64) *OutputPrestateProvider {
 	return &OutputPrestateProvider{
 		prestateBlock: prestateBlock,

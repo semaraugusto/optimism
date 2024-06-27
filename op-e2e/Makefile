@@ -36,7 +36,7 @@ test-fault-proofs: pre-test
 	$(go_test) $(go_test_flags) ./faultproofs
 .PHONY: test-faultproofs
 
-just-test:
+just-test: op-challenger
 	$(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWinsAI -count=1 -only-l1-allocs=true
 	# $(go_test) $(go_test_flags) ./faultproofs -run TestOutputAlphabetGame_ChallengerWinsAI -count=1 -only-l1-allocs=false
 .PHONY: just-test
@@ -53,6 +53,10 @@ cannon-prestate:
 devnet-allocs: pre-test-cannon
 	make -C .. devnet-allocs
 .PHONY: devnet-allocs
+
+op-challenger:
+	make -C .. op-challenger
+.PHONY: op-challenger
 
 pre-test: pre-test-cannon pre-test-allocs
 .PHONY: pre-test

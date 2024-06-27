@@ -117,6 +117,7 @@ type Config struct {
 	MaxConcurrency       uint             // Maximum number of threads to use when progressing games
 	PollInterval         time.Duration    // Polling interval for latest-block subscription when using an HTTP RPC provider
 	AllowInvalidPrestate bool             // Whether to allow responding to games where the prestate does not match
+	OnlyL1Allocs         bool
 
 	AdditionalBondClaimants []common.Address // List of addresses to claim bonds for in addition to the tx manager sender
 
@@ -162,6 +163,7 @@ func NewConfig(
 		GameFactoryAddress: gameFactoryAddress,
 		MaxConcurrency:     uint(runtime.NumCPU()),
 		PollInterval:       DefaultPollInterval,
+		OnlyL1Allocs:       false,
 
 		TraceTypes: supportedTraceTypes,
 

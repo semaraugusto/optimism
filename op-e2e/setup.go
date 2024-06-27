@@ -317,6 +317,9 @@ func (sys *System) L1BeaconHTTPClient() *sources.BeaconHTTPClient {
 }
 
 func (sys *System) NodeEndpoint(name string) string {
+	if name == "mock" {
+		return "http://mock-node-endpoint:1234"
+	}
 	return selectEndpoint(sys.EthInstances[name])
 }
 
@@ -325,6 +328,9 @@ func (sys *System) NodeClient(name string) *ethclient.Client {
 }
 
 func (sys *System) RollupEndpoint(name string) string {
+	if name == "mock" {
+		return "http://mock-rollup-endpoint:1234"
+	}
 	return sys.RollupNodes[name].HTTPEndpoint()
 }
 
