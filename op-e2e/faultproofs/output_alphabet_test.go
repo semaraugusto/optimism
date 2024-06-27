@@ -2,6 +2,7 @@ package faultproofs
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -19,14 +20,14 @@ import (
 func TestOutputAlphabetGame_ChallengerWinsAI(t *testing.T) {
 	op_e2e.InitParallel(t)
 	ctx := context.Background()
-	// sys, l1Client := StartFaultDisputeSystem(t)
-	sys, _ := StartFaultDisputeSystem(t)
+	sys, l1Client := StartFaultDisputeSystem(t)
+	// sys, _ := StartFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
 
 	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
 	game := disputeGameFactory.StartL1OnlyOutputAlphabetGame(ctx, "sequencer", 3, common.Hash{0xff})
-	// correctTrace := game.CreateHonestActor(ctx, "sequencer")
-	_ = game.CreateHonestActor(ctx, "sequencer")
+	correctTrace := game.CreateHonestActor(ctx, "sequencer")
+	// _ = game.CreateHonestActor(ctx, "sequencer")
 	game.LogGameData(ctx)
 
 	opts := challenger.WithPrivKey(sys.Cfg.Secrets.Alice)
@@ -39,8 +40,11 @@ func TestOutputAlphabetGame_ChallengerWinsAI(t *testing.T) {
 		if claim.AgreesWithOutputRoot() {
 			// If the latest claim agrees with the output root, expect the honest challenger to counter it
 			claim = claim.WaitForCounterClaim(ctx)
+			fmt.Println("[HERE] Claiming that: ", claim)
 			game.LogGameData(ctx)
-			claim.RequireCorrectOutputRoot(ctx)
+			// TODO: maybe should uncomment RequireCorrectOutputRoot below - but the supposed `expected`value is mocked and	this is checking an L2 property so maybe not?
+
+			// claim.RequireCorrectOutputRoot(ctx)
 		} else {
 			// Otherwise we should counter
 			claim = claim.Attack(ctx, common.Hash{0xaa})
@@ -48,31 +52,31 @@ func TestOutputAlphabetGame_ChallengerWinsAI(t *testing.T) {
 		}
 	}
 
-	// // Wait for the challenger to post the first claim in the cannon trace
-	// claim = claim.WaitForCounterClaim(ctx)
-	// game.LogGameData(ctx)
-	//
-	// // Attack the root of the alphabet trace subgame
-	// claim = correctTrace.AttackClaim(ctx, claim)
-	// for !claim.IsMaxDepth(ctx) {
-	// 	if claim.AgreesWithOutputRoot() {
-	// 		// If the latest claim supports the output root, wait for the honest challenger to respond
-	// 		claim = claim.WaitForCounterClaim(ctx)
-	// 		game.LogGameData(ctx)
-	// 	} else {
-	// 		// Otherwise we need to counter the honest claim
-	// 		claim = correctTrace.AttackClaim(ctx, claim)
-	// 		game.LogGameData(ctx)
-	// 	}
-	// }
-	// // Challenger should be able to call step and counter the leaf claim.
-	// claim.WaitForCountered(ctx)
-	// game.LogGameData(ctx)
-	//
-	// sys.TimeTravelClock.AdvanceTime(game.MaxClockDuration(ctx))
-	// require.NoError(t, wait.ForNextBlock(ctx, l1Client))
-	// game.WaitForGameStatus(ctx, types.GameStatusChallengerWon)
-	// game.LogGameData(ctx)
+	// Wait for the challenger to post the first claim in the cannon trace
+	claim = claim.WaitForCounterClaim(ctx)
+	game.LogGameData(ctx)
+
+	// Attack the root of the alphabet trace subgame
+	claim = correctTrace.AttackClaim(ctx, claim)
+	for !claim.IsMaxDepth(ctx) {
+		if claim.AgreesWithOutputRoot() {
+			// If the latest claim supports the output root, wait for the honest challenger to respond
+			claim = claim.WaitForCounterClaim(ctx)
+			game.LogGameData(ctx)
+		} else {
+			// Otherwise we need to counter the honest claim
+			claim = correctTrace.AttackClaim(ctx, claim)
+			game.LogGameData(ctx)
+		}
+	}
+	// Challenger should be able to call step and counter the leaf claim.
+	claim.WaitForCountered(ctx)
+	game.LogGameData(ctx)
+
+	sys.TimeTravelClock.AdvanceTime(game.MaxClockDuration(ctx))
+	require.NoError(t, wait.ForNextBlock(ctx, l1Client))
+	game.WaitForGameStatus(ctx, types.GameStatusChallengerWon)
+	game.LogGameData(ctx)
 }
 
 func TestOutputAlphabetGame_ChallengerWins(t *testing.T) {

@@ -128,9 +128,10 @@ func (o *OutputTraceProvider) GetL2BlockNumberChallenge(ctx context.Context) (*t
 
 func (o *OutputTraceProvider) outputAtBlock(ctx context.Context, block uint64) (common.Hash, error) {
 	if o.rollupProvider == nil {
-		o.logger.Warn("rollupProvider is nil - returning claimed block number")
+		o.logger.Warn("rollupProvider is nil - returning common.Hash{}")
 		return common.Hash{}, nil
 	}
+	// TODO: Need to use something like stubRollupClient to get proper hashing
 	output, err := o.rollupProvider.OutputAtBlock(ctx, block)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to fetch output at block %v: %w", block, err)
