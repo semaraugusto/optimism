@@ -150,6 +150,31 @@ contract Deploy is Deployer {
   }
 
   /// @notice Returns the proxy addresses. If a proxy is not found, it will have address(0).
+  function _new_proxies()
+    internal
+    view
+    returns (Types.ContractSet memory proxies_)
+  {
+    proxies_ = Types.ContractSet({
+      L1CrossDomainMessenger: mustGetAddress('L1CrossDomainMessengerProxy'),
+      L1StandardBridge: mustGetAddress('L1StandardBridgeProxy'),
+      L2OutputOracle: mustGetAddress('L2OutputOracleProxy'),
+      DisputeGameFactory: mustGetAddress('DisputeGameFactoryProxy'),
+      DelayedWETH: mustGetAddress('DelayedWETHProxy'),
+      AnchorStateRegistry: mustGetAddress('AnchorStateRegistryProxy'),
+      OptimismMintableERC20Factory: mustGetAddress(
+        'OptimismMintableERC20FactoryProxy'
+      ),
+      OptimismPortal: mustGetAddress('OptimismPortalProxy'),
+      OptimismPortal2: mustGetAddress('OptimismPortalProxy'),
+      SystemConfig: mustGetAddress('SystemConfigProxy'),
+      L1ERC721Bridge: address(0),
+      ProtocolVersions: mustGetAddress('ProtocolVersionsProxy'),
+      SuperchainConfig: mustGetAddress('SuperchainConfigProxy')
+    });
+  }
+
+  /// @notice Returns the proxy addresses. If a proxy is not found, it will have address(0).
   function _proxies()
     internal
     view
@@ -367,8 +392,8 @@ contract Deploy is Deployer {
     setCannonFaultGameImplementation({_allowUpgrade: false});
     setPermissionedCannonFaultGameImplementation({_allowUpgrade: false});
 
-    transferDisputeGameFactoryOwnership();
-    transferDelayedWETHOwnership();
+    newTransferDisputeGameFactoryOwnership();
+    newTransferDelayedWETHOwnership();
   }
 
   /// @notice Deploy all of the proxies
@@ -380,7 +405,7 @@ contract Deploy is Deployer {
     deployL1StandardBridgeProxy();
     deployL1CrossDomainMessengerProxy();
     deployERC1967Proxy('OptimismMintableERC20FactoryProxy');
-    deployERC1967Proxy('L1ERC721BridgeProxy');
+    // deployERC1967Proxy('L1ERC721BridgeProxy');
 
     // Both the DisputeGameFactory and L2OutputOracle proxies are deployed regardless of whether fault proofs is
     // enabled to prevent a nastier refactor to the deploy scripts. In the future, the L2OutputOracle will be
@@ -427,11 +452,11 @@ contract Deploy is Deployer {
       initializeOptimismPortal();
     }
 
-    initializeSystemConfig();
+    newInitializeSystemConfig();
     // initializeL1StandardBridge();
     // initializeL1ERC721Bridge();
     // initializeOptimismMintableERC20Factory();
-    initializeL1CrossDomainMessenger();
+    newInitializeL1CrossDomainMessenger();
     // initializeL2OutputOracle();
     initializeDisputeGameFactory();
     initializeDelayedWETH();
@@ -1300,6 +1325,52 @@ contract Deploy is Deployer {
   }
 
   /// @notice Initialize the SystemConfig
+  function newInitializeSystemConfig() public broadcast {
+    console.log('Upgrading and initializing SystemConfig proxy');
+    address systemConfigProxy = mustGetAddress('SystemConfigProxy');
+    address systemConfig = mustGetAddress('SystemConfig');
+
+    bytes32 batcherHash = bytes32(uint256(uint160(cfg.batchSenderAddress())));
+
+    address customGasTokenAddress = Constants.ETHER;
+    if (cfg.useCustomGasToken()) {
+      customGasTokenAddress = cfg.customGasTokenAddress();
+    }
+
+    _upgradeAndCallViaSafe({
+      _proxy: payable(systemConfigProxy),
+      _implementation: systemConfig,
+      _innerCallData: abi.encodeCall(
+        SystemConfig.initialize,
+        (
+          cfg.finalSystemOwner(),
+          cfg.basefeeScalar(),
+          cfg.blobbasefeeScalar(),
+          batcherHash,
+          uint64(cfg.l2GenesisBlockGasLimit()),
+          cfg.p2pSequencerAddress(),
+          Constants.DEFAULT_RESOURCE_CONFIG(),
+          cfg.batchInboxAddress(),
+          SystemConfig.Addresses({
+            l1CrossDomainMessenger: mustGetAddress(
+              'L1CrossDomainMessengerProxy'
+            ),
+            // l1ERC721Bridge: mustGetAddress('L1ERC721BridgeProxy'),
+            l1ERC721Bridge: address(0),
+            l1StandardBridge: mustGetAddress('L1StandardBridgeProxy'),
+            disputeGameFactory: mustGetAddress('DisputeGameFactoryProxy'),
+            optimismPortal: mustGetAddress('OptimismPortalProxy'),
+            optimismMintableERC20Factory: mustGetAddress(
+              'OptimismMintableERC20FactoryProxy'
+            ),
+            gasPayingToken: customGasTokenAddress
+          })
+        )
+      )
+    });
+  }
+
+  /// @notice Initialize the SystemConfig
   function initializeSystemConfig() public broadcast {
     console.log('Upgrading and initializing SystemConfig proxy');
     address systemConfigProxy = mustGetAddress('SystemConfigProxy');
@@ -1543,7 +1614,7 @@ contract Deploy is Deployer {
     console.log('L1CrossDomainMessenger version: %s', version);
 
     ChainAssertions.checkL1CrossDomainMessenger({
-      _contracts: _proxies(),
+      _contracts: _new_proxies(),
       _vm: vm,
       _isProxy: true
     });
@@ -1645,7 +1716,7 @@ contract Deploy is Deployer {
     console.log('OptimismPortal2 version: %s', version);
 
     ChainAssertions.checkOptimismPortal2({
-      _contracts: _proxies(),
+      _contracts: _new_proxies(),
       _cfg: cfg,
       _isProxy: true
     });
@@ -1685,6 +1756,28 @@ contract Deploy is Deployer {
   }
 
   /// @notice Transfer ownership of the DisputeGameFactory contract to the final system owner
+  function newTransferDisputeGameFactoryOwnership() public broadcast {
+    console.log('Transferring DisputeGameFactory ownership to Safe');
+    DisputeGameFactory disputeGameFactory = DisputeGameFactory(
+      mustGetAddress('DisputeGameFactoryProxy')
+    );
+    address owner = disputeGameFactory.owner();
+
+    address safe = mustGetAddress('SystemOwnerSafe');
+    if (owner != safe) {
+      disputeGameFactory.transferOwnership(safe);
+      console.log(
+        'DisputeGameFactory ownership transferred to Safe at: %s',
+        safe
+      );
+    }
+    ChainAssertions.checkDisputeGameFactory({
+      _contracts: _new_proxies(),
+      _expectedOwner: safe
+    });
+  }
+
+  /// @notice Transfer ownership of the DisputeGameFactory contract to the final system owner
   function transferDisputeGameFactoryOwnership() public broadcast {
     console.log('Transferring DisputeGameFactory ownership to Safe');
     DisputeGameFactory disputeGameFactory = DisputeGameFactory(
@@ -1702,6 +1795,102 @@ contract Deploy is Deployer {
     }
     ChainAssertions.checkDisputeGameFactory({
       _contracts: _proxies(),
+      _expectedOwner: safe
+    });
+  }
+
+  /// @notice newInitializeL1CrossDomainMessenger
+  function newInitializeL1CrossDomainMessenger() public broadcast {
+    console.log('Upgrading and initializing L1CrossDomainMessenger proxy');
+    ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress('ProxyAdmin'));
+    address l1CrossDomainMessengerProxy = mustGetAddress(
+      'L1CrossDomainMessengerProxy'
+    );
+    address l1CrossDomainMessenger = mustGetAddress('L1CrossDomainMessenger');
+    address superchainConfigProxy = mustGetAddress('SuperchainConfigProxy');
+    address optimismPortalProxy = mustGetAddress('OptimismPortalProxy');
+    address systemConfigProxy = mustGetAddress('SystemConfigProxy');
+
+    uint256 proxyType = uint256(
+      proxyAdmin.proxyType(l1CrossDomainMessengerProxy)
+    );
+    Safe safe = Safe(mustGetAddress('SystemOwnerSafe'));
+    if (proxyType != uint256(ProxyAdmin.ProxyType.RESOLVED)) {
+      _callViaSafe({
+        _safe: safe,
+        _target: address(proxyAdmin),
+        _data: abi.encodeCall(
+          ProxyAdmin.setProxyType,
+          (l1CrossDomainMessengerProxy, ProxyAdmin.ProxyType.RESOLVED)
+        )
+      });
+    }
+    require(
+      uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) ==
+        uint256(ProxyAdmin.ProxyType.RESOLVED)
+    );
+
+    string memory contractName = 'OVM_L1CrossDomainMessenger';
+    string memory implName = proxyAdmin.implementationName(
+      l1CrossDomainMessenger
+    );
+    if (keccak256(bytes(contractName)) != keccak256(bytes(implName))) {
+      _callViaSafe({
+        _safe: safe,
+        _target: address(proxyAdmin),
+        _data: abi.encodeCall(
+          ProxyAdmin.setImplementationName,
+          (l1CrossDomainMessengerProxy, contractName)
+        )
+      });
+    }
+    require(
+      keccak256(
+        bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))
+      ) == keccak256(bytes(contractName))
+    );
+
+    _upgradeAndCallViaSafe({
+      _proxy: payable(l1CrossDomainMessengerProxy),
+      _implementation: l1CrossDomainMessenger,
+      _innerCallData: abi.encodeCall(
+        L1CrossDomainMessenger.initialize,
+        (
+          SuperchainConfig(superchainConfigProxy),
+          OptimismPortal(payable(optimismPortalProxy)),
+          SystemConfig(systemConfigProxy)
+        )
+      )
+    });
+
+    L1CrossDomainMessenger messenger = L1CrossDomainMessenger(
+      l1CrossDomainMessengerProxy
+    );
+    string memory version = messenger.version();
+    console.log('L1CrossDomainMessenger version: %s', version);
+
+    ChainAssertions.checkL1CrossDomainMessenger({
+      _contracts: _new_proxies(),
+      _vm: vm,
+      _isProxy: true
+    });
+  }
+
+  /// @notice Transfer ownership of the DelayedWETH contract to the final system owner
+  function newTransferDelayedWETHOwnership() public broadcast {
+    console.log('Transferring DelayedWETH ownership to Safe');
+    DelayedWETH weth = DelayedWETH(mustGetAddress('DelayedWETHProxy'));
+    address owner = weth.owner();
+
+    address safe = mustGetAddress('SystemOwnerSafe');
+    if (owner != safe) {
+      weth.transferOwnership(safe);
+      console.log('DelayedWETH ownership transferred to Safe at: %s', safe);
+    }
+    ChainAssertions.checkDelayedWETH({
+      _contracts: _new_proxies(),
+      _cfg: cfg,
+      _isProxy: true,
       _expectedOwner: safe
     });
   }

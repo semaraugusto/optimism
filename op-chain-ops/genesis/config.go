@@ -747,6 +747,7 @@ func (d *L1Deployments) Check(deployConfig *DeployConfig) error {
 		}
 		if name == "L2OutputOracle" ||
 			name == "L1ERC721Bridge" ||
+			name == "L1ERC721BridgeProxy" ||
 			name == "OptimismMintableERC20Factory" ||
 			name == "L1StandardBridge" {
 			continue

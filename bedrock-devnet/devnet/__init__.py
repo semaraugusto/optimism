@@ -207,7 +207,7 @@ def devnet_fp_l2_allocs(paths):
 
     fqn = 'scripts/L2Genesis.s.sol:L2Genesis'
     run_command([
-        'forge', 'script', fqn, "--sig", "runWithAllUpgrades()"
+        'forge', 'script', fqn, "--sig", "newRunWithAllUpgrades()"
     ], env={
       'CONTRACT_ADDRESSES_PATH': paths.l1_deployments_path,
       'DEPLOY_CONFIG_PATH': paths.devnet_config_path,
