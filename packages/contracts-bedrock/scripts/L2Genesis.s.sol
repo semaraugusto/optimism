@@ -123,7 +123,7 @@ contract L2Genesis is Deployer {
         l1CrossDomainMessengerProxy: mustGetAddress(
           'L1CrossDomainMessengerProxy'
         ),
-        l1StandardBridgeProxy: mustGetAddress('L1StandardBridgeProxy'),
+        l1StandardBridgeProxy: getAddress('L1StandardBridgeProxy'),
         l1ERC721BridgeProxy: getAddress('L1ERC721BridgeProxy')
         // l1ERC721BridgeProxy: address(0)
       });

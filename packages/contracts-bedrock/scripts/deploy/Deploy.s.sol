@@ -157,7 +157,7 @@ contract Deploy is Deployer {
   {
     proxies_ = Types.ContractSet({
       L1CrossDomainMessenger: mustGetAddress('L1CrossDomainMessengerProxy'),
-      L1StandardBridge: mustGetAddress('L1StandardBridgeProxy'),
+      L1StandardBridge: getAddress('L1StandardBridgeProxy'),
       L2OutputOracle: mustGetAddress('L2OutputOracleProxy'),
       DisputeGameFactory: mustGetAddress('DisputeGameFactoryProxy'),
       DelayedWETH: mustGetAddress('DelayedWETHProxy'),
@@ -168,7 +168,8 @@ contract Deploy is Deployer {
       OptimismPortal: mustGetAddress('OptimismPortalProxy'),
       OptimismPortal2: mustGetAddress('OptimismPortalProxy'),
       SystemConfig: mustGetAddress('SystemConfigProxy'),
-      L1ERC721Bridge: address(0),
+      L1ERC721Bridge: getAddress('L1ERC721Bridge'),
+      // L1ERC721Bridge: address(0),
       ProtocolVersions: mustGetAddress('ProtocolVersionsProxy'),
       SuperchainConfig: mustGetAddress('SuperchainConfigProxy')
     });
@@ -402,7 +403,7 @@ contract Deploy is Deployer {
 
     deployERC1967Proxy('OptimismPortalProxy');
     deployERC1967Proxy('SystemConfigProxy');
-    deployL1StandardBridgeProxy();
+    // deployL1StandardBridgeProxy();
     deployL1CrossDomainMessengerProxy();
     deployERC1967Proxy('OptimismMintableERC20FactoryProxy');
     // deployERC1967Proxy('L1ERC721BridgeProxy');
@@ -421,7 +422,7 @@ contract Deploy is Deployer {
   /// @notice Deploy all of the implementations
   function newDeployImplementations() public {
     console.log('Deploying implementations');
-    deployL1CrossDomainMessenger();
+    // deployL1CrossDomainMessenger();
     // deployOptimismMintableERC20Factory();
     deploySystemConfig();
     // deployL1StandardBridge();
@@ -456,7 +457,7 @@ contract Deploy is Deployer {
     // initializeL1StandardBridge();
     // initializeL1ERC721Bridge();
     // initializeOptimismMintableERC20Factory();
-    newInitializeL1CrossDomainMessenger();
+    // newInitializeL1CrossDomainMessenger();
     // initializeL2OutputOracle();
     initializeDisputeGameFactory();
     initializeDelayedWETH();
@@ -1355,9 +1356,9 @@ contract Deploy is Deployer {
             l1CrossDomainMessenger: mustGetAddress(
               'L1CrossDomainMessengerProxy'
             ),
-            // l1ERC721Bridge: mustGetAddress('L1ERC721BridgeProxy'),
-            l1ERC721Bridge: address(0),
-            l1StandardBridge: mustGetAddress('L1StandardBridgeProxy'),
+            l1ERC721Bridge: getAddress('L1ERC721BridgeProxy'),
+            // l1ERC721Bridge: address(0),
+            l1StandardBridge: getAddress('L1StandardBridgeProxy'),
             disputeGameFactory: mustGetAddress('DisputeGameFactoryProxy'),
             optimismPortal: mustGetAddress('OptimismPortalProxy'),
             optimismMintableERC20Factory: mustGetAddress(

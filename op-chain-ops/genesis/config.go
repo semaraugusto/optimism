@@ -749,6 +749,8 @@ func (d *L1Deployments) Check(deployConfig *DeployConfig) error {
 			name == "L1ERC721Bridge" ||
 			name == "L1ERC721BridgeProxy" ||
 			name == "OptimismMintableERC20Factory" ||
+			name == "L1StandardBridgeProxy" ||
+			name == "L1CrossDomainMessenger" ||
 			name == "L1StandardBridge" {
 			continue
 		}
