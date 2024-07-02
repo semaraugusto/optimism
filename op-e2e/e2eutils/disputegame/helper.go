@@ -23,6 +23,8 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+
+	// "github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -30,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,6 +41,22 @@ var (
 	TestKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	TestAddress = crypto.PubkeyToAddress(TestKey.PublicKey)
 )
+
+type NewMockRollupClient struct {
+	helper OutputAlphabetGameHelper
+	mock   mock.Mock
+}
+
+func (m *NewMockRollupClient) OutputAtBlock(ctx context.Context, blockNum uint64) (*eth.OutputResponse, error) {
+	out := m.mock.Called(blockNum)
+	return out.Get(0).(*eth.OutputResponse), out.Error(1)
+
+}
+
+func (m *NewMockRollupClient) SafeHeadAtL1Block(ctx context.Context, l1BlockNum uint64) (*eth.SafeHeadResponse, error) {
+	out := m.mock.Called(l1BlockNum)
+	return out.Get(0).(*eth.SafeHeadResponse), out.Error(1)
+}
 
 const (
 	cannonGameType   uint32 = 0
@@ -204,11 +223,57 @@ func (h *FactoryHelper) StartOutputAlphabetGameWithCorrectRoot(ctx context.Conte
 	return h.StartOutputAlphabetGame(ctx, l2Node, l2BlockNumber, common.Hash(output.OutputRoot))
 }
 
+func (h *FactoryHelper) StartNewOutputAlphabetGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
+	cfg := NewGameCfg(opts...)
+	logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
+	// rollupClient := h.System.RollupClient(l2Node)
+
+	// rollupClient := h.System.RollupClient(l2Node)
+
+	// var rollupClient outputs.OutputRollupClient = nil
+	var rollupClient outputs.OutputRollupClient = &NewMockRollupClient{}
+	// var rollupClient outputs.OutputRollupClient = h.System.RollupClient(l2Node)
+
+	var l2Client *ethclient.Client = nil
+	// l2Client = h.System.NodeClient(l2Node)
+
+	extraData := h.CreateBisectionGameExtraData(l2Node, l2BlockNumber, cfg)
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	tx, err := transactions.PadGasEstimate(h.Opts, 2, func(opts *bind.TransactOpts) (*types.Transaction, error) {
+		return h.Factory.Create(opts, alphabetGameType, rootClaim, extraData)
+	})
+	h.Require.NoError(err, "create output bisection game")
+	rcpt, err := wait.ForReceiptOK(ctx, h.Client, tx.Hash())
+	h.Require.NoError(err, "wait for create output bisection game receipt to be OK")
+	h.Require.Len(rcpt.Logs, 2, "should have emitted a single DisputeGameCreated event")
+	createdEvent, err := h.Factory.ParseDisputeGameCreated(*rcpt.Logs[1])
+	h.Require.NoError(err)
+	game, err := contracts.NewFaultDisputeGameContract(ctx, metrics.NoopContractMetrics, createdEvent.DisputeProxy, batching.NewMultiCaller(h.Client.Client(), batching.DefaultBatchSize))
+	h.Require.NoError(err)
+
+	prestateBlock, poststateBlock, err := game.GetBlockRange(ctx)
+	h.Require.NoError(err, "Failed to load starting block number")
+	splitDepth, err := game.GetSplitDepth(ctx)
+	h.Require.NoError(err, "Failed to load split depth")
+	l1Head := h.GetL1Head(ctx, game)
+	prestateProvider := outputs.NewPrestateProvider(rollupClient, prestateBlock)
+
+	provider := outputs.NewTraceProvider(logger, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
+
+	return &OutputAlphabetGameHelper{
+		OutputGameHelper: *NewOutputGameHelper(h.T, h.Require, h.Client, h.Opts, h.PrivKey, game, h.FactoryAddr, createdEvent.DisputeProxy, provider, h.System),
+	}
+}
+
 func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
 	cfg := NewGameCfg(opts...)
 	logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
 	rollupClient := h.System.RollupClient(l2Node)
-	l2Client := h.System.NodeClient(l2Node)
+	var l2Client *ethclient.Client = nil
+	// l2Client = h.System.NodeClient(l2Node)
 
 	extraData := h.CreateBisectionGameExtraData(l2Node, l2BlockNumber, cfg)
 

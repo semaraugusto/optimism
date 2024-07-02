@@ -16,7 +16,67 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOutputAlphabetGame_ChallengerWins(t *testing.T) {
+func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
+	op_e2e.InitParallel(t)
+	ctx := context.Background()
+	sys, l1Client := StartNewFaultDisputeSystem(t)
+	t.Cleanup(sys.Close)
+
+	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
+	game := disputeGameFactory.StartNewOutputAlphabetGame(ctx, "sequencer", 3, common.Hash{0xff})
+	correctTrace := game.CreateHonestActor(ctx, "sequencer")
+	game.LogGameData(ctx)
+
+	opts := challenger.WithPrivKey(sys.Cfg.Secrets.Alice)
+	game.StartChallenger(ctx, "sequencer", "Challenger", opts)
+	game.LogGameData(ctx)
+
+	// Challenger should post an output root to counter claims down to the leaf level of the top game
+	claim := game.RootClaim(ctx)
+	for claim.IsOutputRoot(ctx) && !claim.IsOutputRootLeaf(ctx) {
+		if claim.AgreesWithOutputRoot() {
+			// If the latest claim agrees with the output root, expect the honest challenger to counter it
+			claim = claim.WaitForCounterClaim(ctx)
+			game.LogGameData(ctx)
+
+			// TODO: Maybe need to uncomment this
+
+			// claim.RequireCorrectOutputRoot(ctx)
+		} else {
+			// Otherwise we should counter
+			claim = claim.Attack(ctx, common.Hash{0xaa})
+			game.LogGameData(ctx)
+		}
+	}
+
+	// Wait for the challenger to post the first claim in the cannon trace
+	claim = claim.WaitForCounterClaim(ctx)
+	game.LogGameData(ctx)
+
+	// Attack the root of the alphabet trace subgame
+	claim = correctTrace.AttackClaim(ctx, claim)
+	for !claim.IsMaxDepth(ctx) {
+		if claim.AgreesWithOutputRoot() {
+			// If the latest claim supports the output root, wait for the honest challenger to respond
+			claim = claim.WaitForCounterClaim(ctx)
+			game.LogGameData(ctx)
+		} else {
+			// Otherwise we need to counter the honest claim
+			claim = correctTrace.AttackClaim(ctx, claim)
+			game.LogGameData(ctx)
+		}
+	}
+	// Challenger should be able to call step and counter the leaf claim.
+	claim.WaitForCountered(ctx)
+	game.LogGameData(ctx)
+
+	sys.TimeTravelClock.AdvanceTime(game.MaxClockDuration(ctx))
+	require.NoError(t, wait.ForNextBlock(ctx, l1Client))
+	game.WaitForGameStatus(ctx, types.GameStatusChallengerWon)
+	game.LogGameData(ctx)
+}
+
+func TestOutputAlphabetGame_ChallengerWinsOld(t *testing.T) {
 	op_e2e.InitParallel(t)
 	ctx := context.Background()
 	sys, l1Client := StartFaultDisputeSystem(t)

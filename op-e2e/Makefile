@@ -6,7 +6,7 @@ ifdef JUNIT_FILE
 	go_test_flags = -timeout=60m -parallel=8
 else
 	go_test = go test
-	go_test_flags = -v
+	# go_test_flags = -v
 endif
 
 test: pre-test test-ws
@@ -35,6 +35,18 @@ test-cannon: pre-test
 test-fault-proofs: pre-test
 	$(go_test) $(go_test_flags) ./faultproofs
 .PHONY: test-faultproofs
+
+test-new:
+	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputAlphabetGame_ChallengerWinsNew -new-allocs=true
+.PHONY: test-new
+
+test-old:
+	$(go_test) -v $(go_test_flags) ./faultproofs -count=1 -run TestOutputAlphabetGame_ChallengerWinsOld
+.PHONY: test-old
+
+test-both:
+	$(go_test) $(go_test_flags) ./faultproofs  -count=1 -run TestOutputAlphabetGame_ChallengerWins -new-allocs=true
+.PHONY: test-both
 
 cannon-prestate:
 	make -C .. cannon-prestate

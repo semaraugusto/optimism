@@ -18,6 +18,7 @@ pjoin = os.path.join
 parser = argparse.ArgumentParser(description='Bedrock devnet launcher')
 parser.add_argument('--monorepo-dir', help='Directory of the monorepo', default=os.getcwd())
 parser.add_argument('--allocs', help='Only create the allocs and exit', type=bool, action=argparse.BooleanOptionalAction)
+parser.add_argument('--l1-allocs', help='Only create the L1 allocs and exit', type=bool, action=argparse.BooleanOptionalAction)
 parser.add_argument('--test', help='Tests the deployment, must already be deployed', type=bool, action=argparse.BooleanOptionalAction)
 
 log = logging.getLogger()
@@ -101,6 +102,11 @@ def main():
 
     os.makedirs(devnet_dir, exist_ok=True)
 
+    if args.l1_allocs:
+        devnet_fp_l1_allocs(paths)
+        devnet_fp_l2_allocs(paths)
+        return
+
     if args.allocs:
         devnet_l1_allocs(paths)
         devnet_l2_allocs(paths)
@@ -137,7 +143,47 @@ def init_devnet_l1_deploy_config(paths, update_timestamp=False):
         deploy_config['daCommitmentType'] = "GenericCommitment"
     write_json(paths.devnet_config_path, deploy_config)
 
+
 def devnet_l1_allocs(paths):
+    log.info('Generating L1 genesis allocs')
+    init_devnet_l1_deploy_config(paths)
+
+    fqn = 'scripts/deploy/Deploy.s.sol:Deploy'
+    run_command([
+        # We need to set the sender here to an account we know the private key of,
+        # because the sender ends up being the owner of the ProxyAdmin SAFE
+        # (which we need to enable the Custom Gas Token feature).
+        'forge', 'script', fqn, "--sig", "newRunWithStateDump()", "--sender", "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+    ], env={
+      'DEPLOYMENT_OUTFILE': paths.l1_deployments_path,
+      'DEPLOY_CONFIG_PATH': paths.devnet_config_path,
+    }, cwd=paths.contracts_bedrock_dir)
+
+    shutil.move(src=paths.forge_l1_dump_path, dst=paths.allocs_l1_path)
+
+    shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
+
+
+def devnet_l2_allocs(paths):
+    log.info('Generating L2 genesis allocs, with L1 addresses: '+paths.l1_deployments_path)
+
+    fqn = 'scripts/L2Genesis.s.sol:L2Genesis'
+    run_command([
+        'forge', 'script', fqn, "--sig", "runWithAllUpgrades()"
+    ], env={
+      'CONTRACT_ADDRESSES_PATH': paths.l1_deployments_path,
+      'DEPLOY_CONFIG_PATH': paths.devnet_config_path,
+    }, cwd=paths.contracts_bedrock_dir)
+
+    # For the previous forks, and the latest fork (default, thus empty prefix),
+    # move the forge-dumps into place as .devnet allocs.
+    for fork in FORKS:
+        input_path = pjoin(paths.contracts_bedrock_dir, f"state-dump-901-{fork}.json")
+        output_path = pjoin(paths.devnet_dir, f'allocs-l2-{fork}.json')
+        shutil.move(src=input_path, dst=output_path)
+        log.info("Generated L2 allocs: "+output_path)
+
+def devnet_fp_l1_allocs(paths):
     log.info('Generating L1 genesis allocs')
     init_devnet_l1_deploy_config(paths)
 
@@ -156,8 +202,7 @@ def devnet_l1_allocs(paths):
 
     shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
 
-
-def devnet_l2_allocs(paths):
+def devnet_fp_l2_allocs(paths):
     log.info('Generating L2 genesis allocs, with L1 addresses: '+paths.l1_deployments_path)
 
     fqn = 'scripts/L2Genesis.s.sol:L2Genesis'

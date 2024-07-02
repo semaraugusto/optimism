@@ -56,6 +56,7 @@ var (
 	ExternalL2TestParms external.TestParms
 	// EthNodeVerbosity is the (legacy geth) level of verbosity to output
 	EthNodeVerbosity int
+	NewFaultProof    bool
 )
 
 func init() {
@@ -81,6 +82,7 @@ func init() {
 	flag.StringVar(&deployConfigPath, "deploy-config", defaultDeployConfigPath, "")
 	flag.StringVar(&externalL2, "externalL2", "", "Enable tests with external L2")
 	flag.IntVar(&EthNodeVerbosity, "ethLogVerbosity", LegacyLevelInfo, "The (legacy geth) level of verbosity to use for the eth node logs")
+	flag.BoolVar(&NewFaultProof, "new-allocs", false, "")
 	testing.Init() // Register test flags before parsing
 	flag.Parse()
 
