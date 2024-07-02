@@ -313,6 +313,7 @@ contract Deploy is Deployer {
   }
 
   function newRunWithStateDump() public {
+    console.log('new run!!!!!!!');
     vm.chainId(cfg.l1ChainID());
     _new_run();
     vm.dumpState(Config.stateDumpPath(''));
@@ -357,7 +358,7 @@ contract Deploy is Deployer {
     mustGetAddress('AddressManager');
     mustGetAddress('ProxyAdmin');
 
-    deployProxies();
+    newDeployProxies();
     newDeployImplementations();
     newInitializeImplementations();
 
@@ -370,16 +371,38 @@ contract Deploy is Deployer {
     transferDelayedWETHOwnership();
   }
 
+  /// @notice Deploy all of the proxies
+  function newDeployProxies() public {
+    console.log('Deploying proxies');
+
+    deployERC1967Proxy('OptimismPortalProxy');
+    deployERC1967Proxy('SystemConfigProxy');
+    deployL1StandardBridgeProxy();
+    deployL1CrossDomainMessengerProxy();
+    deployERC1967Proxy('OptimismMintableERC20FactoryProxy');
+    deployERC1967Proxy('L1ERC721BridgeProxy');
+
+    // Both the DisputeGameFactory and L2OutputOracle proxies are deployed regardless of whether fault proofs is
+    // enabled to prevent a nastier refactor to the deploy scripts. In the future, the L2OutputOracle will be
+    // removed. If fault proofs are not enabled, the DisputeGameFactory proxy will be unused.
+    deployERC1967Proxy('DisputeGameFactoryProxy');
+    deployERC1967Proxy('L2OutputOracleProxy');
+    deployERC1967Proxy('DelayedWETHProxy');
+    deployERC1967Proxy('AnchorStateRegistryProxy');
+
+    transferAddressManagerOwnership(); // to the ProxyAdmin
+  }
+
   /// @notice Deploy all of the implementations
   function newDeployImplementations() public {
     console.log('Deploying implementations');
     deployL1CrossDomainMessenger();
-    deployOptimismMintableERC20Factory();
+    // deployOptimismMintableERC20Factory();
     deploySystemConfig();
-    deployL1StandardBridge();
-    deployL1ERC721Bridge();
+    // deployL1StandardBridge();
+    // deployL1ERC721Bridge();
     deployOptimismPortal();
-    deployL2OutputOracle();
+    // deployL2OutputOracle();
 
     // Fault proofs
     deployOptimismPortal2();
@@ -405,11 +428,11 @@ contract Deploy is Deployer {
     }
 
     initializeSystemConfig();
-    initializeL1StandardBridge();
-    initializeL1ERC721Bridge();
-    initializeOptimismMintableERC20Factory();
+    // initializeL1StandardBridge();
+    // initializeL1ERC721Bridge();
+    // initializeOptimismMintableERC20Factory();
     initializeL1CrossDomainMessenger();
-    initializeL2OutputOracle();
+    // initializeL2OutputOracle();
     initializeDisputeGameFactory();
     initializeDelayedWETH();
     initializeAnchorStateRegistry();

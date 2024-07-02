@@ -745,6 +745,18 @@ func (d *L1Deployments) Check(deployConfig *DeployConfig) error {
 				name == "DataAvailabilityChallengeProxy") {
 			continue
 		}
+		if name == "L2OutputOracle" ||
+			name == "L1ERC721Bridge" ||
+			name == "OptimismMintableERC20Factory" ||
+			name == "L1StandardBridge" {
+			continue
+		}
+		// if name == "L1StandardBridge" {
+		// 	continue
+		// }
+		// if name == "L1ERC721Bridge" {
+		// 	continue
+		// }
 		if val.Field(i).Interface().(common.Address) == (common.Address{}) {
 			return fmt.Errorf("%s is not set", name)
 		}
