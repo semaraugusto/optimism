@@ -156,7 +156,7 @@ contract Deploy is Deployer {
     returns (Types.ContractSet memory proxies_)
   {
     proxies_ = Types.ContractSet({
-      L1CrossDomainMessenger: mustGetAddress('L1CrossDomainMessengerProxy'),
+      L1CrossDomainMessenger: getAddress('L1CrossDomainMessengerProxy'),
       L1StandardBridge: getAddress('L1StandardBridgeProxy'),
       L2OutputOracle: mustGetAddress('L2OutputOracleProxy'),
       DisputeGameFactory: mustGetAddress('DisputeGameFactoryProxy'),
@@ -404,7 +404,7 @@ contract Deploy is Deployer {
     deployERC1967Proxy('OptimismPortalProxy');
     deployERC1967Proxy('SystemConfigProxy');
     // deployL1StandardBridgeProxy();
-    deployL1CrossDomainMessengerProxy();
+    // deployL1CrossDomainMessengerProxy();
     deployERC1967Proxy('OptimismMintableERC20FactoryProxy');
     // deployERC1967Proxy('L1ERC721BridgeProxy');
 
@@ -1353,9 +1353,7 @@ contract Deploy is Deployer {
           Constants.DEFAULT_RESOURCE_CONFIG(),
           cfg.batchInboxAddress(),
           SystemConfig.Addresses({
-            l1CrossDomainMessenger: mustGetAddress(
-              'L1CrossDomainMessengerProxy'
-            ),
+            l1CrossDomainMessenger: getAddress('L1CrossDomainMessengerProxy'),
             l1ERC721Bridge: getAddress('L1ERC721BridgeProxy'),
             // l1ERC721Bridge: address(0),
             l1StandardBridge: getAddress('L1StandardBridgeProxy'),
@@ -1800,82 +1798,82 @@ contract Deploy is Deployer {
     });
   }
 
-  /// @notice newInitializeL1CrossDomainMessenger
-  function newInitializeL1CrossDomainMessenger() public broadcast {
-    console.log('Upgrading and initializing L1CrossDomainMessenger proxy');
-    ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress('ProxyAdmin'));
-    address l1CrossDomainMessengerProxy = mustGetAddress(
-      'L1CrossDomainMessengerProxy'
-    );
-    address l1CrossDomainMessenger = mustGetAddress('L1CrossDomainMessenger');
-    address superchainConfigProxy = mustGetAddress('SuperchainConfigProxy');
-    address optimismPortalProxy = mustGetAddress('OptimismPortalProxy');
-    address systemConfigProxy = mustGetAddress('SystemConfigProxy');
-
-    uint256 proxyType = uint256(
-      proxyAdmin.proxyType(l1CrossDomainMessengerProxy)
-    );
-    Safe safe = Safe(mustGetAddress('SystemOwnerSafe'));
-    if (proxyType != uint256(ProxyAdmin.ProxyType.RESOLVED)) {
-      _callViaSafe({
-        _safe: safe,
-        _target: address(proxyAdmin),
-        _data: abi.encodeCall(
-          ProxyAdmin.setProxyType,
-          (l1CrossDomainMessengerProxy, ProxyAdmin.ProxyType.RESOLVED)
-        )
-      });
-    }
-    require(
-      uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) ==
-        uint256(ProxyAdmin.ProxyType.RESOLVED)
-    );
-
-    string memory contractName = 'OVM_L1CrossDomainMessenger';
-    string memory implName = proxyAdmin.implementationName(
-      l1CrossDomainMessenger
-    );
-    if (keccak256(bytes(contractName)) != keccak256(bytes(implName))) {
-      _callViaSafe({
-        _safe: safe,
-        _target: address(proxyAdmin),
-        _data: abi.encodeCall(
-          ProxyAdmin.setImplementationName,
-          (l1CrossDomainMessengerProxy, contractName)
-        )
-      });
-    }
-    require(
-      keccak256(
-        bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))
-      ) == keccak256(bytes(contractName))
-    );
-
-    _upgradeAndCallViaSafe({
-      _proxy: payable(l1CrossDomainMessengerProxy),
-      _implementation: l1CrossDomainMessenger,
-      _innerCallData: abi.encodeCall(
-        L1CrossDomainMessenger.initialize,
-        (
-          SuperchainConfig(superchainConfigProxy),
-          OptimismPortal(payable(optimismPortalProxy)),
-          SystemConfig(systemConfigProxy)
-        )
-      )
-    });
-
-    L1CrossDomainMessenger messenger = L1CrossDomainMessenger(
-      l1CrossDomainMessengerProxy
-    );
-    string memory version = messenger.version();
-    console.log('L1CrossDomainMessenger version: %s', version);
-
-    ChainAssertions.checkL1CrossDomainMessenger({
-      _contracts: _new_proxies(),
-      _vm: vm,
-      _isProxy: true
-    });
-  }
+  // /// @notice newInitializeL1CrossDomainMessenger
+  // function newInitializeL1CrossDomainMessenger() public broadcast {
+  //   console.log('Upgrading and initializing L1CrossDomainMessenger proxy');
+  //   ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress('ProxyAdmin'));
+  //   address l1CrossDomainMessengerProxy = mustGetAddress(
+  //     'L1CrossDomainMessengerProxy'
+  //   );
+  //   address l1CrossDomainMessenger = mustGetAddress('L1CrossDomainMessenger');
+  //   address superchainConfigProxy = mustGetAddress('SuperchainConfigProxy');
+  //   address optimismPortalProxy = mustGetAddress('OptimismPortalProxy');
+  //   address systemConfigProxy = mustGetAddress('SystemConfigProxy');
+  //
+  //   uint256 proxyType = uint256(
+  //     proxyAdmin.proxyType(l1CrossDomainMessengerProxy)
+  //   );
+  //   Safe safe = Safe(mustGetAddress('SystemOwnerSafe'));
+  //   if (proxyType != uint256(ProxyAdmin.ProxyType.RESOLVED)) {
+  //     _callViaSafe({
+  //       _safe: safe,
+  //       _target: address(proxyAdmin),
+  //       _data: abi.encodeCall(
+  //         ProxyAdmin.setProxyType,
+  //         (l1CrossDomainMessengerProxy, ProxyAdmin.ProxyType.RESOLVED)
+  //       )
+  //     });
+  //   }
+  //   require(
+  //     uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) ==
+  //       uint256(ProxyAdmin.ProxyType.RESOLVED)
+  //   );
+  //
+  //   string memory contractName = 'OVM_L1CrossDomainMessenger';
+  //   string memory implName = proxyAdmin.implementationName(
+  //     l1CrossDomainMessenger
+  //   );
+  //   if (keccak256(bytes(contractName)) != keccak256(bytes(implName))) {
+  //     _callViaSafe({
+  //       _safe: safe,
+  //       _target: address(proxyAdmin),
+  //       _data: abi.encodeCall(
+  //         ProxyAdmin.setImplementationName,
+  //         (l1CrossDomainMessengerProxy, contractName)
+  //       )
+  //     });
+  //   }
+  //   require(
+  //     keccak256(
+  //       bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))
+  //     ) == keccak256(bytes(contractName))
+  //   );
+  //
+  //   _upgradeAndCallViaSafe({
+  //     _proxy: payable(l1CrossDomainMessengerProxy),
+  //     _implementation: l1CrossDomainMessenger,
+  //     _innerCallData: abi.encodeCall(
+  //       L1CrossDomainMessenger.initialize,
+  //       (
+  //         SuperchainConfig(superchainConfigProxy),
+  //         OptimismPortal(payable(optimismPortalProxy)),
+  //         SystemConfig(systemConfigProxy)
+  //       )
+  //     )
+  //   });
+  //
+  //   L1CrossDomainMessenger messenger = L1CrossDomainMessenger(
+  //     l1CrossDomainMessengerProxy
+  //   );
+  //   string memory version = messenger.version();
+  //   console.log('L1CrossDomainMessenger version: %s', version);
+  //
+  //   ChainAssertions.checkL1CrossDomainMessenger({
+  //     _contracts: _new_proxies(),
+  //     _vm: vm,
+  //     _isProxy: true
+  //   });
+  // }
 
   /// @notice Transfer ownership of the DelayedWETH contract to the final system owner
   function newTransferDelayedWETHOwnership() public broadcast {

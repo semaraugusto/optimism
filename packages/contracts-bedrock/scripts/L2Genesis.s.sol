@@ -120,9 +120,7 @@ contract L2Genesis is Deployer {
   {
     return
       L1Dependencies({
-        l1CrossDomainMessengerProxy: mustGetAddress(
-          'L1CrossDomainMessengerProxy'
-        ),
+        l1CrossDomainMessengerProxy: getAddress('L1CrossDomainMessengerProxy'),
         l1StandardBridgeProxy: getAddress('L1StandardBridgeProxy'),
         l1ERC721BridgeProxy: getAddress('L1ERC721BridgeProxy')
         // l1ERC721BridgeProxy: address(0)
@@ -172,8 +170,8 @@ contract L2Genesis is Deployer {
     vm.chainId(cfg.l2ChainID());
 
     dealEthToPrecompiles();
-    setPredeployProxies();
-    setPredeployImplementations(_l1Dependencies);
+    newSetPredeployProxies();
+    newSetPredeployImplementations(_l1Dependencies);
     setPreinstalls();
     if (cfg.fundDevAccounts()) {
       fundDevAccounts();
@@ -262,6 +260,42 @@ contract L2Genesis is Deployer {
     }
   }
 
+  function newSetPredeployProxies() public {
+    console.log('Setting Predeploy proxies');
+    bytes memory code = vm.getDeployedCode('Proxy.sol:Proxy');
+    uint160 prefix = uint160(0x420) << 148;
+
+    console.log(
+      'Setting proxy deployed bytecode for addresses in range %s through %s',
+      address(prefix | uint160(0)),
+      address(prefix | uint160(Predeploys.PREDEPLOY_COUNT - 1))
+    );
+    for (uint256 i = 0; i < Predeploys.PREDEPLOY_COUNT; i++) {
+      address addr = address(prefix | uint160(i));
+      if (Predeploys.notProxied(addr)) {
+        console.log('Skipping proxy at %s', addr);
+        continue;
+      }
+      if (Predeploys.notFraudProof(addr)) {
+        console.log('Skipping proxy at %s', addr);
+        continue;
+      }
+
+      vm.etch(addr, code);
+      EIP1967Helper.setAdmin(addr, Predeploys.PROXY_ADMIN);
+
+      if (Predeploys.isSupportedPredeploy(addr, cfg.useInterop())) {
+        address implementation = Predeploys.predeployToCodeNamespace(addr);
+        console.log(
+          'Setting proxy %s implementation: %s',
+          addr,
+          implementation
+        );
+        EIP1967Helper.setImplementation(addr, implementation);
+      }
+    }
+  }
+
   /// @notice Set up the accounts that correspond to the predeploys.
   ///         The Proxy bytecode should be set. All proxied predeploys should have
   ///         the 1967 admin slot set to the ProxyAdmin predeploy. All defined predeploys
@@ -297,6 +331,56 @@ contract L2Genesis is Deployer {
         EIP1967Helper.setImplementation(addr, implementation);
       }
     }
+  }
+
+  /// @notice Sets all the implementations for the predeploy proxies. For contracts without proxies,
+  ///      sets the deployed bytecode at their expected predeploy address.
+  ///      LEGACY_ERC20_ETH and L1_MESSAGE_SENDER are deprecated and are not set.
+  function newSetPredeployImplementations(
+    L1Dependencies memory _l1Dependencies
+  ) internal {
+    console.log(
+      'Setting predeploy implementations with L1 contract dependencies:'
+    );
+    console.log(
+      '- L1CrossDomainMessengerProxy: %s',
+      _l1Dependencies.l1CrossDomainMessengerProxy
+    );
+    console.log(
+      '- L1StandardBridgeProxy: %s',
+      _l1Dependencies.l1StandardBridgeProxy
+    );
+    console.log(
+      '- L1ERC721BridgeProxy: %s',
+      _l1Dependencies.l1ERC721BridgeProxy
+    );
+    // setLegacyMessagePasser(); // 0
+    // 01: legacy, not used in OP-Stack
+    // setDeployerWhitelist(); // 2
+    // 3,4,5: legacy, not used in OP-Stack.
+    // setWETH(); // 6: WETH (not behind a proxy)
+    // setL2CrossDomainMessenger(_l1Dependencies.l1CrossDomainMessengerProxy); // 7
+    // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
+    // setGasPriceOracle(); // f
+    // setL2StandardBridge(_l1Dependencies.l1StandardBridgeProxy); // 10
+    // setSequencerFeeVault(); // 11
+    // setOptimismMintableERC20Factory(); // 12
+    // setL1BlockNumber(); // 13
+    // setL2ERC721Bridge(_l1Dependencies.l1ERC721BridgeProxy); // 14
+    setL1Block(); // 15
+    // setL2ToL1MessagePasser(); // 16
+    // setOptimismMintableERC721Factory(); // 17
+    // setProxyAdmin(); // 18
+    // setBaseFeeVault(); // 19
+    // setL1FeeVault(); // 1A
+    // 1B,1C,1D,1E,1F: not used.
+    // setSchemaRegistry(); // 20
+    // setEAS(); // 21
+    // setGovernanceToken(); // 42: OP (not behind a proxy)
+    // if (cfg.useInterop()) {
+    //   setCrossL2Inbox(); // 22
+    //   setL2ToL2CrossDomainMessenger(); // 23
+    // }
   }
 
   /// @notice Sets all the implementations for the predeploy proxies. For contracts without proxies,

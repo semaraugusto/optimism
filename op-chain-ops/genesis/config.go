@@ -751,6 +751,7 @@ func (d *L1Deployments) Check(deployConfig *DeployConfig) error {
 			name == "OptimismMintableERC20Factory" ||
 			name == "L1StandardBridgeProxy" ||
 			name == "L1CrossDomainMessenger" ||
+			name == "L1CrossDomainMessengerProxy" ||
 			name == "L1StandardBridge" {
 			continue
 		}
