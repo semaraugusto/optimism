@@ -153,17 +153,13 @@ library Predeploys {
   /// @notice Returns true if the predeploy is not used in fraud proofs.
   function notFraudProof(address _addr) internal pure returns (bool) {
     return
-      // _addr == DEPLOYER_WHITELIST ||
-      // _addr == GAS_PRICE_ORACLE ||
-      // _addr == L1_BLOCK_ATTRIBUTES ||
-      _addr == LEGACY_MESSAGE_PASSER ||
       _addr == L1_MESSAGE_SENDER ||
       _addr == L2_CROSS_DOMAIN_MESSENGER ||
+      _addr == LEGACY_MESSAGE_PASSER ||
       _addr == L2_STANDARD_BRIDGE ||
       _addr == SEQUENCER_FEE_WALLET ||
       _addr == OPTIMISM_MINTABLE_ERC20_FACTORY ||
       _addr == L2_ERC721_BRIDGE ||
-      _addr == L2_TO_L1_MESSAGE_PASSER ||
       _addr == OPTIMISM_MINTABLE_ERC721_FACTORY ||
       _addr == PROXY_ADMIN ||
       _addr == BASE_FEE_VAULT ||
@@ -171,8 +167,8 @@ library Predeploys {
       _addr == SCHEMA_REGISTRY ||
       _addr == EAS ||
       _addr == GOVERNANCE_TOKEN ||
-      _addr == LEGACY_ERC20_ETH ||
       _addr == CROSS_L2_INBOX ||
+      _addr == LEGACY_ERC20_ETH ||
       _addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER;
   }
 

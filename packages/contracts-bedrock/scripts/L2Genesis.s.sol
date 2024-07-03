@@ -342,45 +342,7 @@ contract L2Genesis is Deployer {
     console.log(
       'Setting predeploy implementations with L1 contract dependencies:'
     );
-    console.log(
-      '- L1CrossDomainMessengerProxy: %s',
-      _l1Dependencies.l1CrossDomainMessengerProxy
-    );
-    console.log(
-      '- L1StandardBridgeProxy: %s',
-      _l1Dependencies.l1StandardBridgeProxy
-    );
-    console.log(
-      '- L1ERC721BridgeProxy: %s',
-      _l1Dependencies.l1ERC721BridgeProxy
-    );
-    // setLegacyMessagePasser(); // 0
-    // 01: legacy, not used in OP-Stack
-    // setDeployerWhitelist(); // 2
-    // 3,4,5: legacy, not used in OP-Stack.
-    // setWETH(); // 6: WETH (not behind a proxy)
-    // setL2CrossDomainMessenger(_l1Dependencies.l1CrossDomainMessengerProxy); // 7
-    // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
-    // setGasPriceOracle(); // f
-    // setL2StandardBridge(_l1Dependencies.l1StandardBridgeProxy); // 10
-    // setSequencerFeeVault(); // 11
-    // setOptimismMintableERC20Factory(); // 12
-    // setL1BlockNumber(); // 13
-    // setL2ERC721Bridge(_l1Dependencies.l1ERC721BridgeProxy); // 14
     setL1Block(); // 15
-    // setL2ToL1MessagePasser(); // 16
-    // setOptimismMintableERC721Factory(); // 17
-    // setProxyAdmin(); // 18
-    // setBaseFeeVault(); // 19
-    // setL1FeeVault(); // 1A
-    // 1B,1C,1D,1E,1F: not used.
-    // setSchemaRegistry(); // 20
-    // setEAS(); // 21
-    // setGovernanceToken(); // 42: OP (not behind a proxy)
-    // if (cfg.useInterop()) {
-    //   setCrossL2Inbox(); // 22
-    //   setL2ToL2CrossDomainMessenger(); // 23
-    // }
   }
 
   /// @notice Sets all the implementations for the predeploy proxies. For contracts without proxies,
