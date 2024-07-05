@@ -105,6 +105,7 @@ type Config struct {
 	TxMgrConfig   txmgr.CLIConfig
 	MetricsConfig opmetrics.CLIConfig
 	PprofConfig   oppprof.CLIConfig
+	NoLayer2      bool
 }
 
 func NewConfig(
@@ -133,7 +134,8 @@ func NewConfig(
 		MetricsConfig: opmetrics.DefaultCLIConfig(),
 		PprofConfig:   oppprof.DefaultCLIConfig(),
 
-		Datadir: datadir,
+		Datadir:  datadir,
+		NoLayer2: false,
 
 		Cannon: vm.Config{
 			VmType:       types.TraceTypeCannon,
@@ -160,6 +162,126 @@ func (c Config) TraceTypeEnabled(t types.TraceType) bool {
 }
 
 func (c Config) Check() error {
+	if c.NoLayer2 {
+		return c.CheckFP()
+	}
+	return c.CheckFull()
+}
+
+func (c Config) CheckFull() error {
+	if c.L1EthRpc == "" {
+		return ErrMissingL1EthRPC
+	}
+	if c.L1Beacon == "" {
+		return ErrMissingL1Beacon
+	}
+	if c.RollupRpc == "" {
+		return ErrMissingRollupRpc
+	}
+	if c.L2Rpc == "" {
+		return ErrMissingL2Rpc
+	}
+	if c.GameFactoryAddress == (common.Address{}) {
+		return ErrMissingGameFactoryAddress
+	}
+	if len(c.TraceTypes) == 0 {
+		return ErrMissingTraceType
+	}
+	if c.Datadir == "" {
+		return ErrMissingDatadir
+	}
+	if c.MaxConcurrency == 0 {
+		return ErrMaxConcurrencyZero
+	}
+	if c.TraceTypeEnabled(types.TraceTypeCannon) || c.TraceTypeEnabled(types.TraceTypePermissioned) {
+		if c.Cannon.VmBin == "" {
+			return ErrMissingCannonBin
+		}
+		if c.Cannon.Server == "" {
+			return ErrMissingCannonServer
+		}
+		if c.Cannon.Network == "" {
+			if c.Cannon.RollupConfigPath == "" {
+				return ErrMissingCannonRollupConfig
+			}
+			if c.Cannon.L2GenesisPath == "" {
+				return ErrMissingCannonL2Genesis
+			}
+		} else {
+			if c.Cannon.RollupConfigPath != "" {
+				return ErrCannonNetworkAndRollupConfig
+			}
+			if c.Cannon.L2GenesisPath != "" {
+				return ErrCannonNetworkAndL2Genesis
+			}
+			if ch := chaincfg.ChainByName(c.Cannon.Network); ch == nil {
+				return fmt.Errorf("%w: %v", ErrCannonNetworkUnknown, c.Cannon.Network)
+			}
+		}
+		if c.CannonAbsolutePreState == "" && c.CannonAbsolutePreStateBaseURL == nil {
+			return ErrMissingCannonAbsolutePreState
+		}
+		if c.CannonAbsolutePreState != "" && c.CannonAbsolutePreStateBaseURL != nil {
+			return ErrCannonAbsolutePreStateAndBaseURL
+		}
+		if c.Cannon.SnapshotFreq == 0 {
+			return ErrMissingCannonSnapshotFreq
+		}
+		if c.Cannon.InfoFreq == 0 {
+			return ErrMissingCannonInfoFreq
+		}
+	}
+	if c.TraceTypeEnabled(types.TraceTypeAsterisc) {
+		if c.Asterisc.VmBin == "" {
+			return ErrMissingAsteriscBin
+		}
+		if c.Asterisc.Server == "" {
+			return ErrMissingAsteriscServer
+		}
+		if c.Asterisc.Network == "" {
+			if c.Asterisc.RollupConfigPath == "" {
+				return ErrMissingAsteriscRollupConfig
+			}
+			if c.Asterisc.L2GenesisPath == "" {
+				return ErrMissingAsteriscL2Genesis
+			}
+		} else {
+			if c.Asterisc.RollupConfigPath != "" {
+				return ErrAsteriscNetworkAndRollupConfig
+			}
+			if c.Asterisc.L2GenesisPath != "" {
+				return ErrAsteriscNetworkAndL2Genesis
+			}
+			if ch := chaincfg.ChainByName(c.Asterisc.Network); ch == nil {
+				return fmt.Errorf("%w: %v", ErrAsteriscNetworkUnknown, c.Asterisc.Network)
+			}
+		}
+		if c.AsteriscAbsolutePreState == "" && c.AsteriscAbsolutePreStateBaseURL == nil {
+			return ErrMissingAsteriscAbsolutePreState
+		}
+		if c.AsteriscAbsolutePreState != "" && c.AsteriscAbsolutePreStateBaseURL != nil {
+			return ErrAsteriscAbsolutePreStateAndBaseURL
+		}
+		if c.Asterisc.SnapshotFreq == 0 {
+			return ErrMissingAsteriscSnapshotFreq
+		}
+		if c.Asterisc.InfoFreq == 0 {
+			return ErrMissingAsteriscInfoFreq
+		}
+	}
+	if err := c.TxMgrConfig.Check(); err != nil {
+		return err
+	}
+	if err := c.MetricsConfig.Check(); err != nil {
+		return err
+	}
+	if err := c.PprofConfig.Check(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c Config) CheckFP() error {
 	if c.L1EthRpc == "" {
 		return ErrMissingL1EthRPC
 	}

@@ -63,6 +63,12 @@ func WithFactoryAddress(addr common.Address) Option {
 	}
 }
 
+func WithoutLayer2(b bool) Option {
+	return func(c *config.Config) {
+		c.NoLayer2 = b
+	}
+}
+
 func WithGameAddress(addr common.Address) Option {
 	return func(c *config.Config) {
 		c.GameAllowlist = append(c.GameAllowlist, addr)

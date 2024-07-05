@@ -28,7 +28,7 @@ func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
 	game.LogGameData(ctx)
 
 	opts := challenger.WithPrivKey(sys.Cfg.Secrets.Alice)
-	game.StartChallenger(ctx, "sequencer", "Challenger", opts)
+	game.NewStartChallenger(ctx, "sequencer", "Challenger", opts)
 	game.LogGameData(ctx)
 
 	// Challenger should post an output root to counter claims down to the leaf level of the top game

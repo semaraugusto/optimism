@@ -14,6 +14,26 @@ type OutputAlphabetGameHelper struct {
 	OutputGameHelper
 }
 
+func (g *OutputAlphabetGameHelper) NewStartChallenger(
+	ctx context.Context,
+	l2Node string,
+	name string,
+	options ...challenger.Option,
+) *challenger.Helper {
+	opts := []challenger.Option{
+		challenger.WithAlphabet(),
+		challenger.WithoutLayer2(true),
+		challenger.WithFactoryAddress(g.FactoryAddr),
+		challenger.WithGameAddress(g.Addr),
+	}
+	opts = append(opts, options...)
+	c := challenger.NewChallenger(g.T, ctx, g.System, name, opts...)
+	g.T.Cleanup(func() {
+		_ = c.Close()
+	})
+	return c
+}
+
 func (g *OutputAlphabetGameHelper) StartChallenger(
 	ctx context.Context,
 	l2Node string,
@@ -22,6 +42,7 @@ func (g *OutputAlphabetGameHelper) StartChallenger(
 ) *challenger.Helper {
 	opts := []challenger.Option{
 		challenger.WithAlphabet(),
+		// challenger.WithoutLayer2(true),
 		challenger.WithFactoryAddress(g.FactoryAddr),
 		challenger.WithGameAddress(g.Addr),
 	}

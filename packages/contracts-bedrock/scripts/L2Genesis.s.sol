@@ -336,9 +336,7 @@ contract L2Genesis is Deployer {
   /// @notice Sets all the implementations for the predeploy proxies. For contracts without proxies,
   ///      sets the deployed bytecode at their expected predeploy address.
   ///      LEGACY_ERC20_ETH and L1_MESSAGE_SENDER are deprecated and are not set.
-  function newSetPredeployImplementations(
-    L1Dependencies memory _l1Dependencies
-  ) internal {
+  function newSetPredeployImplementations(L1Dependencies memory) internal {
     console.log(
       'Setting predeploy implementations with L1 contract dependencies:'
     );
