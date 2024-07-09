@@ -28,6 +28,7 @@ const (
 	AsteriscGameType     GameType = 2
 	FastGameType         GameType = 254
 	AlphabetGameType     GameType = 255
+	ExecutionGameType    GameType = 123
 	UnknownGameType      GameType = math.MaxUint32
 )
 
@@ -47,6 +48,8 @@ func (t GameType) String() string {
 		return "fast"
 	case AlphabetGameType:
 		return "alphabet"
+	case ExecutionGameType:
+		return "alphabet-ex"
 	default:
 		return fmt.Sprintf("<invalid: %d>", t)
 	}
@@ -60,9 +63,10 @@ const (
 	TraceTypeCannon       TraceType = "cannon"
 	TraceTypeAsterisc     TraceType = "asterisc"
 	TraceTypePermissioned TraceType = "permissioned"
+	TraceTypeExecution    TraceType = "alphabet-ex"
 )
 
-var TraceTypes = []TraceType{TraceTypeAlphabet, TraceTypeCannon, TraceTypePermissioned, TraceTypeAsterisc, TraceTypeFast}
+var TraceTypes = []TraceType{TraceTypeAlphabet, TraceTypeCannon, TraceTypePermissioned, TraceTypeAsterisc, TraceTypeFast, TraceTypeExecution}
 
 func (t TraceType) String() string {
 	return string(t)
@@ -103,6 +107,8 @@ func (t TraceType) GameType() GameType {
 		return FastGameType
 	case TraceTypeAlphabet:
 		return AlphabetGameType
+	case TraceTypeExecution:
+		return ExecutionGameType
 	default:
 		return UnknownGameType
 	}

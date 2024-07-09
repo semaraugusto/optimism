@@ -389,6 +389,7 @@ contract Deploy is Deployer {
     newInitializeImplementations();
 
     setAlphabetFaultGameImplementation({_allowUpgrade: false});
+    setExecutionFaultGameImplementation({_allowUpgrade: false});
     setFastFaultGameImplementation({_allowUpgrade: false});
     setCannonFaultGameImplementation({_allowUpgrade: false});
     setPermissionedCannonFaultGameImplementation({_allowUpgrade: false});
@@ -526,6 +527,7 @@ contract Deploy is Deployer {
     initializeImplementations();
 
     setAlphabetFaultGameImplementation({_allowUpgrade: false});
+    setExecutionFaultGameImplementation({_allowUpgrade: false});
     setFastFaultGameImplementation({_allowUpgrade: false});
     setCannonFaultGameImplementation({_allowUpgrade: false});
     setPermissionedCannonFaultGameImplementation({_allowUpgrade: false});
@@ -1276,7 +1278,7 @@ contract Deploy is Deployer {
     address anchorStateRegistry = mustGetAddress('AnchorStateRegistry');
 
     AnchorStateRegistry.StartingAnchorRoot[]
-      memory roots = new AnchorStateRegistry.StartingAnchorRoot[](5);
+      memory roots = new AnchorStateRegistry.StartingAnchorRoot[](6);
     roots[0] = AnchorStateRegistry.StartingAnchorRoot({
       gameType: GameTypes.CANNON,
       outputRoot: OutputRoot({
@@ -1307,6 +1309,13 @@ contract Deploy is Deployer {
     });
     roots[4] = AnchorStateRegistry.StartingAnchorRoot({
       gameType: GameTypes.FAST,
+      outputRoot: OutputRoot({
+        root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
+        l2BlockNumber: cfg.faultGameGenesisBlock()
+      })
+    });
+    roots[5] = AnchorStateRegistry.StartingAnchorRoot({
+      gameType: GameTypes.EXECUTION,
       outputRoot: OutputRoot({
         root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
         l2BlockNumber: cfg.faultGameGenesisBlock()
@@ -2011,6 +2020,44 @@ contract Deploy is Deployer {
     });
   }
 
+  /// @notice Sets the implementation for the `Execution` game type in the `DisputeGameFactory`
+  function setExecutionFaultGameImplementation(
+    bool _allowUpgrade
+  ) public onlyDevnet broadcast {
+    console.log('Setting Execution FaultDisputeGame implementation');
+    DisputeGameFactory factory = DisputeGameFactory(
+      mustGetAddress('DisputeGameFactoryProxy')
+    );
+    DelayedWETH weth = DelayedWETH(mustGetAddress('DelayedWETHProxy'));
+
+    Claim outputAbsolutePrestate = Claim.wrap(
+      bytes32(cfg.faultGameAbsolutePrestate())
+    );
+    uint256 split = cfg.faultGameSplitDepth();
+    _setFaultGameImplementation({
+      _factory: factory,
+      _allowUpgrade: _allowUpgrade,
+      _params: FaultDisputeGameParams({
+        anchorStateRegistry: AnchorStateRegistry(
+          mustGetAddress('AnchorStateRegistryProxy')
+        ),
+        weth: weth,
+        gameType: GameTypes.EXECUTION,
+        absolutePrestate: outputAbsolutePrestate,
+        faultVm: IBigStepper(
+          new AlphabetVM(
+            outputAbsolutePrestate,
+            PreimageOracle(mustGetAddress('PreimageOracle'))
+          )
+        ),
+        // The max depth for the alphabet trace is always 3. Add 1 because split depth is fully inclusive.
+        // maxGameDepth: 0 + 3 + 1,
+        maxGameDepth: 4,
+        maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
+      })
+    });
+  }
+
   /// @notice Sets the implementation for the `ALPHABET` game type in the `DisputeGameFactory`
   function setAlphabetFaultGameImplementation(
     bool _allowUpgrade
@@ -2024,6 +2071,7 @@ contract Deploy is Deployer {
     Claim outputAbsolutePrestate = Claim.wrap(
       bytes32(cfg.faultGameAbsolutePrestate())
     );
+    uint256 split = cfg.faultGameSplitDepth();
     _setFaultGameImplementation({
       _factory: factory,
       _allowUpgrade: _allowUpgrade,
@@ -2101,23 +2149,7 @@ contract Deploy is Deployer {
     }
 
     uint32 rawGameType = GameType.unwrap(_params.gameType);
-    if (rawGameType != GameTypes.PERMISSIONED_CANNON.raw()) {
-      _factory.setImplementation(
-        _params.gameType,
-        new FaultDisputeGame({
-          _gameType: _params.gameType,
-          _absolutePrestate: _params.absolutePrestate,
-          _maxGameDepth: _params.maxGameDepth,
-          _splitDepth: cfg.faultGameSplitDepth(),
-          _clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
-          _maxClockDuration: _params.maxClockDuration,
-          _vm: _params.faultVm,
-          _weth: _params.weth,
-          _anchorStateRegistry: _params.anchorStateRegistry,
-          _l2ChainId: cfg.l2ChainID()
-        })
-      );
-    } else {
+    if (rawGameType == GameTypes.PERMISSIONED_CANNON.raw()) {
       _factory.setImplementation(
         _params.gameType,
         new PermissionedDisputeGame({
@@ -2137,6 +2169,38 @@ contract Deploy is Deployer {
           _challenger: cfg.l2OutputOracleChallenger()
         })
       );
+    } else if (rawGameType == GameTypes.EXECUTION.raw()) {
+      _factory.setImplementation(
+        _params.gameType,
+        new FaultDisputeGame({
+          _gameType: _params.gameType,
+          _absolutePrestate: _params.absolutePrestate,
+          _maxGameDepth: _params.maxGameDepth,
+          _splitDepth: 0,
+          _clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
+          _maxClockDuration: _params.maxClockDuration,
+          _vm: _params.faultVm,
+          _weth: _params.weth,
+          _anchorStateRegistry: _params.anchorStateRegistry,
+          _l2ChainId: cfg.l2ChainID()
+        })
+      );
+    } else {
+      _factory.setImplementation(
+        _params.gameType,
+        new FaultDisputeGame({
+          _gameType: _params.gameType,
+          _absolutePrestate: _params.absolutePrestate,
+          _maxGameDepth: _params.maxGameDepth,
+          _splitDepth: cfg.faultGameSplitDepth(),
+          _clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
+          _maxClockDuration: _params.maxClockDuration,
+          _vm: _params.faultVm,
+          _weth: _params.weth,
+          _anchorStateRegistry: _params.anchorStateRegistry,
+          _l2ChainId: cfg.l2ChainID()
+        })
+      );
     }
 
     string memory gameTypeString;
@@ -2145,6 +2209,8 @@ contract Deploy is Deployer {
     } else if (rawGameType == GameTypes.PERMISSIONED_CANNON.raw()) {
       gameTypeString = 'PermissionedCannon';
     } else if (rawGameType == GameTypes.ALPHABET.raw()) {
+      gameTypeString = 'Alphabet';
+    } else if (rawGameType == GameTypes.EXECUTION.raw()) {
       gameTypeString = 'Alphabet';
     } else {
       gameTypeString = 'Unknown';

@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	// "github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 
 	// "github.com/ethereum-optimism/optimism/op-service/testutils"
@@ -59,8 +60,9 @@ func (m *NewMockRollupClient) SafeHeadAtL1Block(ctx context.Context, l1BlockNum 
 }
 
 const (
-	cannonGameType   uint32 = 0
-	alphabetGameType uint32 = 255
+	cannonGameType    uint32 = 0
+	alphabetGameType  uint32 = 255
+	executionGameType uint32 = 123
 )
 
 type GameCfg struct {
@@ -226,16 +228,9 @@ func (h *FactoryHelper) StartOutputAlphabetGameWithCorrectRoot(ctx context.Conte
 func (h *FactoryHelper) StartNewOutputAlphabetGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
 	cfg := NewGameCfg(opts...)
 	logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
-	// rollupClient := h.System.RollupClient(l2Node)
 
-	// rollupClient := h.System.RollupClient(l2Node)
-
-	// var rollupClient outputs.OutputRollupClient = nil
 	var rollupClient outputs.OutputRollupClient = &NewMockRollupClient{}
-	// var rollupClient outputs.OutputRollupClient = h.System.RollupClient(l2Node)
-
 	var l2Client *ethclient.Client = nil
-	// l2Client = h.System.NodeClient(l2Node)
 
 	extraData := h.CreateBisectionGameExtraData(l2Node, l2BlockNumber, cfg)
 
@@ -243,7 +238,8 @@ func (h *FactoryHelper) StartNewOutputAlphabetGame(ctx context.Context, l2Node s
 	defer cancel()
 
 	tx, err := transactions.PadGasEstimate(h.Opts, 2, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return h.Factory.Create(opts, alphabetGameType, rootClaim, extraData)
+		return h.Factory.Create(opts, executionGameType, rootClaim, extraData)
+		// return h.Factory.Create(opts, alphabetGameType, rootClaim, extraData)
 	})
 	h.Require.NoError(err, "create output bisection game")
 	rcpt, err := wait.ForReceiptOK(ctx, h.Client, tx.Hash())
@@ -272,8 +268,7 @@ func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node stri
 	cfg := NewGameCfg(opts...)
 	logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
 	rollupClient := h.System.RollupClient(l2Node)
-	var l2Client *ethclient.Client = nil
-	// l2Client = h.System.NodeClient(l2Node)
+	l2Client := h.System.NodeClient(l2Node)
 
 	extraData := h.CreateBisectionGameExtraData(l2Node, l2BlockNumber, cfg)
 
@@ -283,6 +278,7 @@ func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node stri
 	tx, err := transactions.PadGasEstimate(h.Opts, 2, func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		return h.Factory.Create(opts, alphabetGameType, rootClaim, extraData)
 	})
+
 	h.Require.NoError(err, "create output bisection game")
 	rcpt, err := wait.ForReceiptOK(ctx, h.Client, tx.Hash())
 	h.Require.NoError(err, "wait for create output bisection game receipt to be OK")
@@ -293,6 +289,7 @@ func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node stri
 	h.Require.NoError(err)
 
 	prestateBlock, poststateBlock, err := game.GetBlockRange(ctx)
+
 	h.Require.NoError(err, "Failed to load starting block number")
 	splitDepth, err := game.GetSplitDepth(ctx)
 	h.Require.NoError(err, "Failed to load split depth")

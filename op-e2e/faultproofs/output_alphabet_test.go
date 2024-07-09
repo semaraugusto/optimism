@@ -20,11 +20,14 @@ func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
 	op_e2e.InitParallel(t)
 	ctx := context.Background()
 	sys, l1Client := StartNewFaultDisputeSystem(t)
+	// sys, _ := StartNewFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
 
 	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
+	// _ = disputeGameFactory.StartNewOutputAlphabetGame(ctx, "sequencer", 3, common.Hash{0xff})
 	game := disputeGameFactory.StartNewOutputAlphabetGame(ctx, "sequencer", 3, common.Hash{0xff})
 	correctTrace := game.CreateHonestActor(ctx, "sequencer")
+	// _ = game.CreateHonestActor(ctx, "sequencer")
 	game.LogGameData(ctx)
 
 	opts := challenger.WithPrivKey(sys.Cfg.Secrets.Alice)
@@ -34,6 +37,7 @@ func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
 	// Challenger should post an output root to counter claims down to the leaf level of the top game
 	claim := game.RootClaim(ctx)
 	for claim.IsOutputRoot(ctx) && !claim.IsOutputRootLeaf(ctx) {
+		t.Logf("[OutputRoot] CurrDepth %d", claim.Position.Depth())
 		if claim.AgreesWithOutputRoot() {
 			// If the latest claim agrees with the output root, expect the honest challenger to counter it
 			claim = claim.WaitForCounterClaim(ctx)
@@ -48,14 +52,15 @@ func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
 			game.LogGameData(ctx)
 		}
 	}
-
 	// Wait for the challenger to post the first claim in the cannon trace
 	claim = claim.WaitForCounterClaim(ctx)
 	game.LogGameData(ctx)
 
 	// Attack the root of the alphabet trace subgame
 	claim = correctTrace.AttackClaim(ctx, claim)
+	game.LogGameData(ctx)
 	for !claim.IsMaxDepth(ctx) {
+		t.Logf("[ExecutionRoot] CurrDepth %d", claim.Position.Depth())
 		if claim.AgreesWithOutputRoot() {
 			// If the latest claim supports the output root, wait for the honest challenger to respond
 			claim = claim.WaitForCounterClaim(ctx)

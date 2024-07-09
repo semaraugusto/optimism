@@ -140,6 +140,12 @@ func WithAlphabet() Option {
 	}
 }
 
+func WithExecution() Option {
+	return func(c *config.Config) {
+		c.TraceTypes = append(c.TraceTypes, types.TraceTypeExecution)
+	}
+}
+
 func WithFastGames() Option {
 	return func(c *config.Config) {
 		c.TraceTypes = append(c.TraceTypes, types.TraceTypeFast)

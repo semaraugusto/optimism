@@ -98,6 +98,11 @@ func RegisterGameTypes(
 			return nil, fmt.Errorf("failed to register alphabet game type: %w", err)
 		}
 	}
+	if cfg.TraceTypeEnabled(faultTypes.TraceTypeExecution) {
+		if err := registerAlphabet(faultTypes.ExecutionGameType, registry, oracles, ctx, systemClock, l1Clock, logger, m, syncValidator, rollupClient, l2Client, txSender, gameFactory, caller, l1HeaderSource, selective, claimants); err != nil {
+			return nil, fmt.Errorf("failed to register alphabet game type: %w", err)
+		}
+	}
 	return l2Client.Close, nil
 }
 

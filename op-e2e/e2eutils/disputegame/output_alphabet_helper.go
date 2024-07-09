@@ -23,6 +23,7 @@ func (g *OutputAlphabetGameHelper) NewStartChallenger(
 	opts := []challenger.Option{
 		challenger.WithAlphabet(),
 		challenger.WithoutLayer2(true),
+		challenger.WithExecution(),
 		challenger.WithFactoryAddress(g.FactoryAddr),
 		challenger.WithGameAddress(g.Addr),
 	}
