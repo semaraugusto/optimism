@@ -40,9 +40,18 @@ func (c *ClaimHelper) IsRootClaim() bool {
 	return c.Position.IsRootPosition()
 }
 
+func (c *ClaimHelper) Claim() common.Hash {
+	return c.claim
+}
+
 func (c *ClaimHelper) IsOutputRoot(ctx context.Context) bool {
 	splitDepth := c.game.SplitDepth(ctx)
 	return c.Position.Depth() <= splitDepth
+}
+
+func (c *ClaimHelper) SplitDepth(ctx context.Context) types.Depth {
+	return c.game.SplitDepth(ctx)
+	// return c.Position.Depth() <= splitDepth
 }
 
 func (c *ClaimHelper) IsOutputRootLeaf(ctx context.Context) bool {

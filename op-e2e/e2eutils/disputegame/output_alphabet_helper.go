@@ -55,6 +55,22 @@ func (g *OutputAlphabetGameHelper) StartChallenger(
 	return c
 }
 
+// func (g *OutputAlphabetGameHelper) NewCreateHonestActor(ctx context.Context, l2Node string) *OutputHonestHelper {
+// 	logger := testlog.Logger(g.T, log.LevelInfo).New("role", "HonestHelper", "game", g.Addr)
+// 	prestateBlock, poststateBlock, err := g.Game.GetBlockRange(ctx)
+// 	g.Require.NoError(err, "Get block range")
+// 	splitDepth := g.SplitDepth(ctx)
+// 	l1Head := g.GetL1Head(ctx)
+// 	rollupClient := g.System.RollupClient(l2Node)
+// 	l2Client := g.System.NodeClient(l2Node)
+// 	prestateProvider := outputs.NewExecutionPrestateProvider(rollupClient, prestateBlock)
+// 	correctTrace, err := outputs.NewOutputAlphabetTraceAccessor(logger, metrics.NoopMetrics, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
+// 	// prestateProvider := outputs.NewPrestateProvider(rollupClient, prestateBlock)
+// 	// correctTrace, err := outputs.NewOutputAlphabetTraceAccessor(logger, metrics.NoopMetrics, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
+// 	g.Require.NoError(err, "Create trace accessor")
+// 	return NewOutputHonestHelper(g.T, g.Require, &g.OutputGameHelper, g.Game, correctTrace)
+// }
+
 func (g *OutputAlphabetGameHelper) CreateHonestActor(ctx context.Context, l2Node string) *OutputHonestHelper {
 	logger := testlog.Logger(g.T, log.LevelInfo).New("role", "HonestHelper", "game", g.Addr)
 	prestateBlock, poststateBlock, err := g.Game.GetBlockRange(ctx)

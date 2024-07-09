@@ -2,7 +2,7 @@ package fault
 
 import (
 	"context"
-	"errors"
+	// "errors"
 	"fmt"
 	"time"
 
@@ -177,14 +177,14 @@ func (g *GamePlayer) ProgressGame(ctx context.Context) gameTypes.GameStatus {
 		g.logger.Trace("Skipping completed game")
 		return g.status
 	}
-	if err := g.syncValidator.ValidateNodeSynced(ctx, g.gameL1Head); errors.Is(err, ErrNotInSync) {
-		g.logger.Warn("Local node not sufficiently up to date", "err", err)
-		return g.status
-	} else if err != nil {
-		g.logger.Error("Could not check local node was in sync", "err", err)
-		return g.status
-	}
-	g.logger.Trace("Checking if actions are required")
+	// if err := g.syncValidator.ValidateNodeSynced(ctx, g.gameL1Head); errors.Is(err, ErrNotInSync) {
+	// 	g.logger.Warn("Local node not sufficiently up to date", "err", err)
+	// 	return g.status
+	// } else if err != nil {
+	// 	g.logger.Error("Could not check local node was in sync", "err", err)
+	// 	return g.status
+	// }
+	// g.logger.Trace("Checking if actions are required")
 	if err := g.act(ctx); err != nil {
 		g.logger.Error("Error when acting on game", "err", err)
 	}

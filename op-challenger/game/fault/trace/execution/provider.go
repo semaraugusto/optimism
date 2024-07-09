@@ -1,0 +1,119 @@
+package execution
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"math/big"
+
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+)
+
+const (
+	L2ClaimBlockNumberLocalIndex = 4
+)
+
+var (
+	ErrIndexTooLarge = errors.New("index is larger than the maximum index")
+)
+
+var _ types.TraceProvider = (*ExecutionTraceProvider)(nil)
+
+// ExecutionTraceProvider is a [TraceProvider] that monotonically increments
+// the starting l2 block number as the claim value.
+type ExecutionTraceProvider struct {
+	executionPrestateProvider
+	startingBlockNumber *big.Int
+	depth               types.Depth
+	maxLen              uint64
+}
+
+// NewTraceProvider returns a new [AlphabetProvider].
+func NewTraceProvider(startingBlockNumber *big.Int, depth types.Depth) *ExecutionTraceProvider {
+	return &ExecutionTraceProvider{
+		startingBlockNumber: startingBlockNumber,
+		depth:               depth,
+		maxLen:              1 << depth,
+	}
+}
+
+func (ap *ExecutionTraceProvider) GetStepData(ctx context.Context, pos types.Position) ([]byte, []byte, *types.PreimageOracleData, error) {
+	traceIndex := pos.TraceIndex(ap.depth)
+	key := preimage.LocalIndexKey(L2ClaimBlockNumberLocalIndex).PreimageKey()
+	preimageData := types.NewPreimageOracleData(key[:], ap.startingBlockNumber.Bytes(), 0)
+	if traceIndex.Cmp(common.Big0) == 0 {
+		return absolutePrestate, []byte{}, preimageData, nil
+	}
+	if traceIndex.Cmp(new(big.Int).SetUint64(ap.maxLen)) > 0 {
+		return nil, nil, nil, fmt.Errorf("%w depth: %v index: %v max: %v", ErrIndexTooLarge, ap.depth, traceIndex, ap.maxLen)
+	}
+	initialTraceIndex := new(big.Int).Lsh(ap.startingBlockNumber, 4)
+	initialClaim := new(big.Int).Add(absolutePrestateInt, initialTraceIndex)
+	newTraceIndex := new(big.Int).Add(initialTraceIndex, traceIndex)
+	newClaim := new(big.Int).Add(initialClaim, traceIndex)
+	return BuildAlphabetPreimage(newTraceIndex, newClaim), []byte{}, preimageData, nil
+}
+
+// Get returns the claim value at the given index in the trace.
+func (ap *ExecutionTraceProvider) Get(ctx context.Context, i types.Position) (common.Hash, error) {
+	if i.Depth() > ap.depth {
+		return common.Hash{}, fmt.Errorf("%w depth: %v max: %v", ErrIndexTooLarge, i.Depth(), ap.depth)
+	}
+	// Step data returns the pre-state, so add 1 to get the state for index i
+	ti := i.TraceIndex(ap.depth)
+	postPosition := types.NewPosition(ap.depth, new(big.Int).Add(ti, big.NewInt(1)))
+	claimBytes, _, _, err := ap.GetStepData(ctx, postPosition)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return alphabetStateHash(claimBytes), nil
+}
+
+func (ap *ExecutionTraceProvider) GetL2BlockNumberChallenge(_ context.Context) (*types.InvalidL2BlockNumberChallenge, error) {
+	return nil, types.ErrL2BlockNumberValid
+}
+
+// BuildAlphabetPreimage constructs the claim bytes for the index and claim.
+func BuildAlphabetPreimage(traceIndex *big.Int, claim *big.Int) []byte {
+	return append(traceIndex.FillBytes(make([]byte, 32)), claim.FillBytes(make([]byte, 32))...)
+}
+
+func alphabetStateHash(state []byte) common.Hash {
+	h := crypto.Keccak256Hash(state)
+	h[0] = mipsevm.VMStatusInvalid
+	return h
+}
+
+// type ExecutionPrestateProvider struct {
+// 	prestateBlock uint64
+// 	prestateHash  []byte
+// 	// rollupClient  OutputRollupClient
+// }
+//
+// func NewExecutionPrestateProvider(prestateHash []byte, prestateBlock uint64) *ExecutionPrestateProvider {
+// 	return &ExecutionPrestateProvider{
+// 		prestateBlock: prestateBlock,
+// 		prestateHash:  prestateHash,
+// 		// rollupClient:  rollupClient,
+// 	}
+// }
+//
+// func (o *ExecutionPrestateProvider) AbsolutePreStateCommitment(ctx context.Context) (common.Hash, error) {
+// 	// hash = common.BytesToHash(crypto.Keccak256(o.prestateHash))
+// 	// hash[0] = 3
+// 	return common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"), nil
+// 	// return o.outputAtBlock(ctx, o.prestateBlock)
+// }
+//
+// func (o *ExecutionPrestateProvider) outputAtBlock(context.Context, uint64) (common.Hash, error) {
+// 	dst := make([]byte, 32)
+// 	binary.LittleEndian.PutUint64(dst, o.prestateBlock+1)
+//
+// 	return common.BytesToHash(dst), nil
+// }

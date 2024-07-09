@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/execution"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/outputs"
 	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
@@ -250,14 +251,18 @@ func (h *FactoryHelper) StartNewOutputAlphabetGame(ctx context.Context, l2Node s
 	game, err := contracts.NewFaultDisputeGameContract(ctx, metrics.NoopContractMetrics, createdEvent.DisputeProxy, batching.NewMultiCaller(h.Client.Client(), batching.DefaultBatchSize))
 	h.Require.NoError(err)
 
-	prestateBlock, poststateBlock, err := game.GetBlockRange(ctx)
+	prestateBlock, _, err := game.GetBlockRange(ctx)
 	h.Require.NoError(err, "Failed to load starting block number")
+	// prestateHash, err := game.GetAbsolutePrestateHash(ctx)
+	h.Require.NoError(err, "Failed to load prestate hash")
 	splitDepth, err := game.GetSplitDepth(ctx)
 	h.Require.NoError(err, "Failed to load split depth")
-	l1Head := h.GetL1Head(ctx, game)
-	prestateProvider := outputs.NewPrestateProvider(rollupClient, prestateBlock)
+	// l1Head := h.GetL1Head(ctx, game)
+	// prestateProvider := execution.NewExecutionPrestateProvider(prestateHash.Bytes(), prestateBlock)
+	// prestateProvider := execution.NewExecutionPrestateProvider()
 
-	provider := outputs.NewTraceProvider(logger, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
+	// provider := execution.NewTraceProvider(logger, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
+	provider := execution.NewTraceProvider(big.NewInt(int64(prestateBlock)), splitDepth)
 
 	return &OutputAlphabetGameHelper{
 		OutputGameHelper: *NewOutputGameHelper(h.T, h.Require, h.Client, h.Opts, h.PrivKey, game, h.FactoryAddr, createdEvent.DisputeProxy, provider, h.System),

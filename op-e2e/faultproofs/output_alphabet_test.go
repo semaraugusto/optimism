@@ -36,22 +36,8 @@ func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
 
 	// Challenger should post an output root to counter claims down to the leaf level of the top game
 	claim := game.RootClaim(ctx)
-	for claim.IsOutputRoot(ctx) && !claim.IsOutputRootLeaf(ctx) {
-		t.Logf("[OutputRoot] CurrDepth %d", claim.Position.Depth())
-		if claim.AgreesWithOutputRoot() {
-			// If the latest claim agrees with the output root, expect the honest challenger to counter it
-			claim = claim.WaitForCounterClaim(ctx)
-			game.LogGameData(ctx)
+	rootClaim := claim
 
-			// TODO: Maybe need to uncomment this
-
-			// claim.RequireCorrectOutputRoot(ctx)
-		} else {
-			// Otherwise we should counter
-			claim = claim.Attack(ctx, common.Hash{0xaa})
-			game.LogGameData(ctx)
-		}
-	}
 	// Wait for the challenger to post the first claim in the cannon trace
 	claim = claim.WaitForCounterClaim(ctx)
 	game.LogGameData(ctx)
@@ -59,6 +45,8 @@ func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
 	// Attack the root of the alphabet trace subgame
 	claim = correctTrace.AttackClaim(ctx, claim)
 	game.LogGameData(ctx)
+	t.Log("[DATA] claim: ", claim.Claim())
+	t.Log("[DATA] RootClaim: ", rootClaim.Claim())
 	for !claim.IsMaxDepth(ctx) {
 		t.Logf("[ExecutionRoot] CurrDepth %d", claim.Position.Depth())
 		if claim.AgreesWithOutputRoot() {

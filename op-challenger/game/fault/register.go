@@ -147,7 +147,8 @@ func registerAlphabet(
 		if err != nil {
 			return nil, err
 		}
-		prestateProvider := outputs.NewPrestateProvider(rollupClient, prestateBlock)
+		prestateHash, err := contract.GetAbsolutePrestateHash(ctx)
+		prestateProvider := outputs.NewExecutionPrestateProvider(prestateHash.Bytes(), prestateBlock)
 		creator := func(ctx context.Context, logger log.Logger, gameDepth faultTypes.Depth, dir string) (faultTypes.TraceAccessor, error) {
 			accessor, err := outputs.NewOutputAlphabetTraceAccessor(logger, m, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
 			if err != nil {
