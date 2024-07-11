@@ -22,6 +22,15 @@ func (m *MockRollupClient) ExpectOutputAtBlock(blockNum uint64, response *eth.Ou
 	m.Mock.On("OutputAtBlock", blockNum).Once().Return(response, err)
 }
 
+func (m *MockRollupClient) SafeHeadAtL1Block(ctx context.Context, l1BlockNum uint64) (*eth.SafeHeadResponse, error) {
+	out := m.Mock.Called(l1BlockNum)
+	return out.Get(0).(*eth.SafeHeadResponse), out.Error(1)
+}
+
+func (m *MockRollupClient) ExpectSafeHeadAtL1Block(l1BlockNum uint64, response *eth.SafeHeadResponse, err error) {
+	m.Mock.On("SafeHeadAtL1Block", l1BlockNum).Once().Return(response, err)
+}
+
 func (m *MockRollupClient) SyncStatus(ctx context.Context) (*eth.SyncStatus, error) {
 	out := m.Mock.Called()
 	return out.Get(0).(*eth.SyncStatus), out.Error(1)

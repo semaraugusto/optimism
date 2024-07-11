@@ -10,7 +10,9 @@ import (
 	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/fetcher"
 	"github.com/ethereum-optimism/optimism/op-challenger/sender"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
+	// "github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
@@ -55,7 +57,8 @@ type Service struct {
 	factoryContract *contracts.DisputeGameFactoryContract
 	registry        *registry.GameTypeRegistry
 	oracles         *registry.OracleRegistry
-	rollupClient    *sources.RollupClient
+	// rollupClient    *sources.RollupClient
+	rollupClient RollupClient
 
 	l1Client   *ethclient.Client
 	pollClient client.RPC
@@ -66,6 +69,13 @@ type Service struct {
 	balanceMetricer io.Closer
 
 	stopped atomic.Bool
+}
+
+type RollupClient interface {
+	SyncStatus(ctx context.Context) (*eth.SyncStatus, error)
+	OutputAtBlock(ctx context.Context, blockNum uint64) (*eth.OutputResponse, error)
+	SafeHeadAtL1Block(ctx context.Context, l1BlockNum uint64) (*eth.SafeHeadResponse, error)
+	Close()
 }
 
 // NewService creates a new Service.
@@ -94,15 +104,24 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 		return fmt.Errorf("failed to init l1 client: %w", err)
 	}
 	// s.rollupClient = nil
-	// if cfg.NoLayer2 {
-	// 	s.rollupClient = nil
-	// } else {
-	// 	if err := s.initRollupClient(ctx, cfg); err != nil {
-	// 		return fmt.Errorf("failed to init rollup client: %w", err)
-	// 	}
-	// }
-	if err := s.initRollupClient(ctx, cfg); err != nil {
-		return fmt.Errorf("failed to init rollup client: %w", err)
+	if cfg.NoLayer2 {
+		mock := &testutils.MockRollupClient{}
+		mock.ExpectClose()
+		s.rollupClient = mock
+		// blockHash := "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+		// // s.rollupClient.
+		// resp := eth.SafeHeadResponse{
+		// 	L1Block:  eth.BlockID{Hash: common.HexToHash(blockHash), Number: 0},
+		// 	SafeHead: eth.BlockID{Hash: common.HexToHash(blockHash), Number: 0},
+		// }
+		// rollupClient.ExpectSafeHeadAtL1Block(0, &resp, nil)
+		// if err != nil {
+		// 	return fmt.Errorf("FAILED %w", err)
+		// }
+	} else {
+		if err := s.initRollupClient(ctx, cfg); err != nil {
+			return fmt.Errorf("failed to init rollup client: %w", err)
+		}
 	}
 	if err := s.initPollClient(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init poll client: %w", err)
