@@ -226,12 +226,9 @@ func (h *FactoryHelper) StartOutputAlphabetGameWithCorrectRoot(ctx context.Conte
 	return h.StartOutputAlphabetGame(ctx, l2Node, l2BlockNumber, common.Hash(output.OutputRoot))
 }
 
-func (h *FactoryHelper) StartNewOutputAlphabetGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
+func (h *FactoryHelper) StartExecutionGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
 	cfg := NewGameCfg(opts...)
-	logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
-
-	var rollupClient outputs.OutputRollupClient = &NewMockRollupClient{}
-	var l2Client *ethclient.Client = nil
+	// logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
 
 	extraData := h.CreateBisectionGameExtraData(l2Node, l2BlockNumber, cfg)
 
@@ -240,7 +237,6 @@ func (h *FactoryHelper) StartNewOutputAlphabetGame(ctx context.Context, l2Node s
 
 	tx, err := transactions.PadGasEstimate(h.Opts, 2, func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		return h.Factory.Create(opts, executionGameType, rootClaim, extraData)
-		// return h.Factory.Create(opts, alphabetGameType, rootClaim, extraData)
 	})
 	h.Require.NoError(err, "create output bisection game")
 	rcpt, err := wait.ForReceiptOK(ctx, h.Client, tx.Hash())

@@ -28,7 +28,7 @@ var _ types.TraceProvider = (*ExecutionTraceProvider)(nil)
 // ExecutionTraceProvider is a [TraceProvider] that monotonically increments
 // the starting l2 block number as the claim value.
 type ExecutionTraceProvider struct {
-	executionPrestateProvider
+	ExecutionPrestateProvider
 	startingBlockNumber *big.Int
 	depth               types.Depth
 	maxLen              uint64
@@ -41,6 +41,9 @@ func NewTraceProvider(startingBlockNumber *big.Int, depth types.Depth) *Executio
 		depth:               depth,
 		maxLen:              1 << depth,
 	}
+}
+func (ep *ExecutionTraceProvider) ClaimedBlockNumber(pos types.Position) (uint64, error) {
+	return 0, fmt.Errorf("This game doesn't care about Claimed Block Number. Don't use this.")
 }
 
 func (ap *ExecutionTraceProvider) GetStepData(ctx context.Context, pos types.Position) ([]byte, []byte, *types.PreimageOracleData, error) {
@@ -57,7 +60,7 @@ func (ap *ExecutionTraceProvider) GetStepData(ctx context.Context, pos types.Pos
 	initialClaim := new(big.Int).Add(absolutePrestateInt, initialTraceIndex)
 	newTraceIndex := new(big.Int).Add(initialTraceIndex, traceIndex)
 	newClaim := new(big.Int).Add(initialClaim, traceIndex)
-	return BuildAlphabetPreimage(newTraceIndex, newClaim), []byte{}, preimageData, nil
+	return BuildExecutionPreimage(newTraceIndex, newClaim), []byte{}, preimageData, nil
 }
 
 // Get returns the claim value at the given index in the trace.
@@ -80,7 +83,7 @@ func (ap *ExecutionTraceProvider) GetL2BlockNumberChallenge(_ context.Context) (
 }
 
 // BuildAlphabetPreimage constructs the claim bytes for the index and claim.
-func BuildAlphabetPreimage(traceIndex *big.Int, claim *big.Int) []byte {
+func BuildExecutionPreimage(traceIndex *big.Int, claim *big.Int) []byte {
 	return append(traceIndex.FillBytes(make([]byte, 32)), claim.FillBytes(make([]byte, 32))...)
 }
 
@@ -89,31 +92,3 @@ func alphabetStateHash(state []byte) common.Hash {
 	h[0] = mipsevm.VMStatusInvalid
 	return h
 }
-
-// type ExecutionPrestateProvider struct {
-// 	prestateBlock uint64
-// 	prestateHash  []byte
-// 	// rollupClient  OutputRollupClient
-// }
-//
-// func NewExecutionPrestateProvider(prestateHash []byte, prestateBlock uint64) *ExecutionPrestateProvider {
-// 	return &ExecutionPrestateProvider{
-// 		prestateBlock: prestateBlock,
-// 		prestateHash:  prestateHash,
-// 		// rollupClient:  rollupClient,
-// 	}
-// }
-//
-// func (o *ExecutionPrestateProvider) AbsolutePreStateCommitment(ctx context.Context) (common.Hash, error) {
-// 	// hash = common.BytesToHash(crypto.Keccak256(o.prestateHash))
-// 	// hash[0] = 3
-// 	return common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"), nil
-// 	// return o.outputAtBlock(ctx, o.prestateBlock)
-// }
-//
-// func (o *ExecutionPrestateProvider) outputAtBlock(context.Context, uint64) (common.Hash, error) {
-// 	dst := make([]byte, 32)
-// 	binary.LittleEndian.PutUint64(dst, o.prestateBlock+1)
-//
-// 	return common.BytesToHash(dst), nil
-// }

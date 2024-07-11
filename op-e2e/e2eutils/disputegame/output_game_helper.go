@@ -10,7 +10,7 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/preimages"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/outputs"
+	// "github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/outputs"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
 	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
@@ -31,20 +31,38 @@ import (
 const defaultTimeout = 5 * time.Minute
 
 type OutputGameHelper struct {
-	T                     *testing.T
-	Require               *require.Assertions
-	Client                *ethclient.Client
-	Opts                  *bind.TransactOpts
-	PrivKey               *ecdsa.PrivateKey
-	Game                  contracts.FaultDisputeGameContract
-	FactoryAddr           common.Address
-	Addr                  common.Address
-	CorrectOutputProvider *outputs.OutputTraceProvider
+	T           *testing.T
+	Require     *require.Assertions
+	Client      *ethclient.Client
+	Opts        *bind.TransactOpts
+	PrivKey     *ecdsa.PrivateKey
+	Game        contracts.FaultDisputeGameContract
+	FactoryAddr common.Address
+	Addr        common.Address
+	// CorrectOutputProvider *outputs.OutputTraceProvider
+	CorrectOutputProvider CorrectTraceOracle
 	System                DisputeSystem
 }
 
-func NewOutputGameHelper(t *testing.T, require *require.Assertions, client *ethclient.Client, opts *bind.TransactOpts, privKey *ecdsa.PrivateKey,
-	game contracts.FaultDisputeGameContract, factoryAddr common.Address, addr common.Address, correctOutputProvider *outputs.OutputTraceProvider, system DisputeSystem) *OutputGameHelper {
+type CorrectTraceOracle interface {
+	// func (ap *ExecutionTraceProvider) Get(ctx context.Context, i types.Position) (common.Hash, error) {
+	Get(ctx context.Context, pos types.Position) (common.Hash, error)
+	ClaimedBlockNumber(pos types.Position) (uint64, error)
+}
+
+// game contracts.FaultDisputeGameContract, factoryAddr common.Address, addr common.Address, correctOutputProvider *outputs.OutputTraceProvider, system DisputeSystem) *OutputGameHelper {
+func NewOutputGameHelper(
+	t *testing.T,
+	require *require.Assertions,
+	client *ethclient.Client,
+	opts *bind.TransactOpts,
+	privKey *ecdsa.PrivateKey,
+	game contracts.FaultDisputeGameContract,
+	factoryAddr common.Address,
+	addr common.Address,
+	correctOutputProvider CorrectTraceOracle,
+	system DisputeSystem,
+) *OutputGameHelper {
 	return &OutputGameHelper{
 		T:                     t,
 		Require:               require,

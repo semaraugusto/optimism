@@ -25,7 +25,7 @@ func TestOutputAlphabetGame_ChallengerWinsNew(t *testing.T) {
 
 	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
 	// _ = disputeGameFactory.StartNewOutputAlphabetGame(ctx, "sequencer", 3, common.Hash{0xff})
-	game := disputeGameFactory.StartNewOutputAlphabetGame(ctx, "sequencer", 3, common.Hash{0xff})
+	game := disputeGameFactory.StartExecutionGame(ctx, "sequencer", 3, common.Hash{0xff})
 	correctTrace := game.CreateHonestActor(ctx, "sequencer")
 	// _ = game.CreateHonestActor(ctx, "sequencer")
 	game.LogGameData(ctx)

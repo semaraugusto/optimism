@@ -93,6 +93,14 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 	if err := s.initL1Client(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init l1 client: %w", err)
 	}
+	// s.rollupClient = nil
+	// if cfg.NoLayer2 {
+	// 	s.rollupClient = nil
+	// } else {
+	// 	if err := s.initRollupClient(ctx, cfg); err != nil {
+	// 		return fmt.Errorf("failed to init rollup client: %w", err)
+	// 	}
+	// }
 	if err := s.initRollupClient(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init rollup client: %w", err)
 	}

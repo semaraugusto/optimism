@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/alphabet"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/asterisc"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/cannon"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/execution"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/outputs"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/prestates"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
@@ -99,11 +100,79 @@ func RegisterGameTypes(
 		}
 	}
 	if cfg.TraceTypeEnabled(faultTypes.TraceTypeExecution) {
-		if err := registerAlphabet(faultTypes.ExecutionGameType, registry, oracles, ctx, systemClock, l1Clock, logger, m, syncValidator, rollupClient, l2Client, txSender, gameFactory, caller, l1HeaderSource, selective, claimants); err != nil {
-			return nil, fmt.Errorf("failed to register alphabet game type: %w", err)
+		if err := registerExecution(faultTypes.ExecutionGameType, registry, oracles, ctx, systemClock, l1Clock, logger, m, syncValidator, rollupClient, l2Client, txSender, gameFactory, caller, l1HeaderSource, selective, claimants); err != nil {
+			return nil, fmt.Errorf("failed to register execution game type: %w", err)
 		}
 	}
 	return l2Client.Close, nil
+}
+
+func registerExecution(
+	gameType faultTypes.GameType,
+	registry Registry,
+	oracles OracleRegistry,
+	ctx context.Context,
+	systemClock clock.Clock,
+	l1Clock faultTypes.ClockReader,
+	logger log.Logger,
+	m metrics.Metricer,
+	syncValidator SyncValidator,
+	rollupClient RollupClient,
+	l2Client utils.L2HeaderSource,
+	txSender TxSender,
+	gameFactory *contracts.DisputeGameFactoryContract,
+	caller *batching.MultiCaller,
+	l1HeaderSource L1HeaderSource,
+	selective bool,
+	claimants []common.Address,
+) error {
+	playerCreator := func(game types.GameMetadata, dir string) (scheduler.GamePlayer, error) {
+		contract, err := contracts.NewFaultDisputeGameContract(ctx, m, game.Proxy, caller)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create fault dispute game contract: %w", err)
+		}
+		oracle, err := contract.GetOracle(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load oracle for game %v: %w", game.Proxy, err)
+		}
+		oracles.RegisterOracle(oracle)
+		prestateBlock, poststateBlock, err := contract.GetBlockRange(ctx)
+		if err != nil {
+			return nil, err
+		}
+		splitDepth, err := contract.GetSplitDepth(ctx)
+		if err != nil {
+			return nil, err
+		}
+		l1Head, err := loadL1Head(contract, ctx, l1HeaderSource)
+		if err != nil {
+			return nil, err
+		}
+		// prestateHash, err := contract.GetAbsolutePrestateHash(ctx)
+		// prestateProvider := execution.NewExecutionPrestateProvider(prestateHash.Bytes(), prestateBlock)
+		prestateProvider := execution.NewExecutionPrestateProvider()
+		creator := func(ctx context.Context, logger log.Logger, gameDepth faultTypes.Depth, dir string) (faultTypes.TraceAccessor, error) {
+			accessor, err := outputs.NewOutputAlphabetTraceAccessor(logger, m, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
+			if err != nil {
+				return nil, err
+			}
+			return accessor, nil
+		}
+		prestateValidator := NewPrestateValidator("alphabet", contract.GetAbsolutePrestateHash, alphabet.PrestateProvider)
+		startingValidator := NewPrestateValidator("output root", contract.GetStartingRootHash, prestateProvider)
+		return NewGamePlayer(ctx, systemClock, l1Clock, logger, m, dir, game.Proxy, txSender, contract, syncValidator, []Validator{prestateValidator, startingValidator}, creator, l1HeaderSource, selective, claimants)
+	}
+	err := registerOracle(ctx, m, oracles, gameFactory, caller, gameType)
+	if err != nil {
+		return err
+	}
+	registry.RegisterGameType(gameType, playerCreator)
+
+	contractCreator := func(game types.GameMetadata) (claims.BondContract, error) {
+		return contracts.NewFaultDisputeGameContract(ctx, m, game.Proxy, caller)
+	}
+	registry.RegisterBondContract(gameType, contractCreator)
+	return nil
 }
 
 func registerAlphabet(
@@ -147,8 +216,7 @@ func registerAlphabet(
 		if err != nil {
 			return nil, err
 		}
-		prestateHash, err := contract.GetAbsolutePrestateHash(ctx)
-		prestateProvider := outputs.NewExecutionPrestateProvider(prestateHash.Bytes(), prestateBlock)
+		prestateProvider := outputs.NewPrestateProvider(rollupClient, prestateBlock)
 		creator := func(ctx context.Context, logger log.Logger, gameDepth faultTypes.Depth, dir string) (faultTypes.TraceAccessor, error) {
 			accessor, err := outputs.NewOutputAlphabetTraceAccessor(logger, m, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
 			if err != nil {
