@@ -813,6 +813,10 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 	}
 	sys.L2OutputSubmitter = proposer
 
+	if config.NewFaultProof {
+		sys.BatchSubmitter = nil
+		return sys, nil
+	}
 	var batchType uint = derive.SingularBatchType
 	if cfg.DeployConfig.L2GenesisDeltaTimeOffset != nil && *cfg.DeployConfig.L2GenesisDeltaTimeOffset == hexutil.Uint64(0) {
 		batchType = derive.SpanBatchType
