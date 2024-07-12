@@ -433,7 +433,7 @@ func (s *SystemConfigOptions) Get(key, role string) (systemConfigHook, bool) {
 }
 
 func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*System, error) {
-	opts, err := NewSystemConfigOptions(_opts)
+	_, err := NewSystemConfigOptions(_opts)
 	if err != nil {
 		return nil, err
 	}
@@ -481,74 +481,74 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 		}
 	}
 
-	l1Block := l1Genesis.ToBlock()
-	var allocsMode genesis.L2AllocsMode
-	allocsMode = genesis.L2AllocsDelta
-	if fjordTime := cfg.DeployConfig.FjordTime(l1Block.Time()); fjordTime != nil && *fjordTime <= 0 {
-		allocsMode = genesis.L2AllocsFjord
-	} else if ecotoneTime := cfg.DeployConfig.EcotoneTime(l1Block.Time()); ecotoneTime != nil && *ecotoneTime <= 0 {
-		allocsMode = genesis.L2AllocsEcotone
-	}
-	t.Log("Generating L2 genesis", "l2_allocs_mode", string(allocsMode))
-	l2Allocs := config.L2Allocs(allocsMode)
-	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l2Allocs, l1Block)
-	if err != nil {
-		return nil, err
-	}
-	sys.L2GenesisCfg = l2Genesis
-	for addr, amount := range cfg.Premine {
-		if existing, ok := l2Genesis.Alloc[addr]; ok {
-			l2Genesis.Alloc[addr] = types.Account{
-				Code:    existing.Code,
-				Storage: existing.Storage,
-				Balance: amount,
-				Nonce:   existing.Nonce,
-			}
-		} else {
-			l2Genesis.Alloc[addr] = types.Account{
-				Balance: amount,
-				Nonce:   0,
-			}
-		}
-	}
+	// l1Block := l1Genesis.ToBlock()
+	// var allocsMode genesis.L2AllocsMode
+	// allocsMode = genesis.L2AllocsDelta
+	// if fjordTime := cfg.DeployConfig.FjordTime(l1Block.Time()); fjordTime != nil && *fjordTime <= 0 {
+	// 	allocsMode = genesis.L2AllocsFjord
+	// } else if ecotoneTime := cfg.DeployConfig.EcotoneTime(l1Block.Time()); ecotoneTime != nil && *ecotoneTime <= 0 {
+	// 	allocsMode = genesis.L2AllocsEcotone
+	// }
+	// t.Log("Generating L2 genesis", "l2_allocs_mode", string(allocsMode))
+	// l2Allocs := config.L2Allocs(allocsMode)
+	// l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l2Allocs, l1Block)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// sys.L2GenesisCfg = l2Genesis
+	// for addr, amount := range cfg.Premine {
+	// 	if existing, ok := l2Genesis.Alloc[addr]; ok {
+	// 		l2Genesis.Alloc[addr] = types.Account{
+	// 			Code:    existing.Code,
+	// 			Storage: existing.Storage,
+	// 			Balance: amount,
+	// 			Nonce:   existing.Nonce,
+	// 		}
+	// 	} else {
+	// 		l2Genesis.Alloc[addr] = types.Account{
+	// 			Balance: amount,
+	// 			Nonce:   0,
+	// 		}
+	// 	}
+	// }
 
-	makeRollupConfig := func() rollup.Config {
-		return rollup.Config{
-			Genesis: rollup.Genesis{
-				L1: eth.BlockID{
-					Hash:   l1Block.Hash(),
-					Number: 0,
-				},
-				L2: eth.BlockID{
-					Hash:   l2Genesis.ToBlock().Hash(),
-					Number: 0,
-				},
-				L2Time:       uint64(cfg.DeployConfig.L1GenesisBlockTimestamp),
-				SystemConfig: e2eutils.SystemConfigFromDeployConfig(cfg.DeployConfig),
-			},
-			BlockTime:               cfg.DeployConfig.L2BlockTime,
-			MaxSequencerDrift:       cfg.DeployConfig.MaxSequencerDrift,
-			SeqWindowSize:           cfg.DeployConfig.SequencerWindowSize,
-			ChannelTimeout:          cfg.DeployConfig.ChannelTimeout,
-			L1ChainID:               cfg.L1ChainIDBig(),
-			L2ChainID:               cfg.L2ChainIDBig(),
-			BatchInboxAddress:       cfg.DeployConfig.BatchInboxAddress,
-			DepositContractAddress:  cfg.DeployConfig.OptimismPortalProxy,
-			L1SystemConfigAddress:   cfg.DeployConfig.SystemConfigProxy,
-			RegolithTime:            cfg.DeployConfig.RegolithTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-			CanyonTime:              cfg.DeployConfig.CanyonTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-			DeltaTime:               cfg.DeployConfig.DeltaTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-			EcotoneTime:             cfg.DeployConfig.EcotoneTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-			FjordTime:               cfg.DeployConfig.FjordTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-			InteropTime:             cfg.DeployConfig.InteropTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-			ProtocolVersionsAddress: cfg.L1Deployments.ProtocolVersionsProxy,
-		}
-	}
-	defaultConfig := makeRollupConfig()
-	if err := defaultConfig.Check(); err != nil {
-		return nil, err
-	}
-	sys.RollupConfig = &defaultConfig
+	// makeRollupConfig := func() rollup.Config {
+	// 	return rollup.Config{
+	// 		Genesis: rollup.Genesis{
+	// 			L1: eth.BlockID{
+	// 				Hash:   l1Block.Hash(),
+	// 				Number: 0,
+	// 			},
+	// 			L2: eth.BlockID{
+	// 				Hash:   l2Genesis.ToBlock().Hash(),
+	// 				Number: 0,
+	// 			},
+	// 			L2Time:       uint64(cfg.DeployConfig.L1GenesisBlockTimestamp),
+	// 			SystemConfig: e2eutils.SystemConfigFromDeployConfig(cfg.DeployConfig),
+	// 		},
+	// 		BlockTime:               cfg.DeployConfig.L2BlockTime,
+	// 		MaxSequencerDrift:       cfg.DeployConfig.MaxSequencerDrift,
+	// 		SeqWindowSize:           cfg.DeployConfig.SequencerWindowSize,
+	// 		ChannelTimeout:          cfg.DeployConfig.ChannelTimeout,
+	// 		L1ChainID:               cfg.L1ChainIDBig(),
+	// 		L2ChainID:               cfg.L2ChainIDBig(),
+	// 		BatchInboxAddress:       cfg.DeployConfig.BatchInboxAddress,
+	// 		DepositContractAddress:  cfg.DeployConfig.OptimismPortalProxy,
+	// 		L1SystemConfigAddress:   cfg.DeployConfig.SystemConfigProxy,
+	// 		RegolithTime:            cfg.DeployConfig.RegolithTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
+	// 		CanyonTime:              cfg.DeployConfig.CanyonTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
+	// 		DeltaTime:               cfg.DeployConfig.DeltaTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
+	// 		EcotoneTime:             cfg.DeployConfig.EcotoneTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
+	// 		FjordTime:               cfg.DeployConfig.FjordTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
+	// 		InteropTime:             cfg.DeployConfig.InteropTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
+	// 		ProtocolVersionsAddress: cfg.L1Deployments.ProtocolVersionsProxy,
+	// 	}
+	// }
+	// defaultConfig := makeRollupConfig()
+	// if err := defaultConfig.Check(); err != nil {
+	// 	return nil, err
+	// }
+	// sys.RollupConfig = &defaultConfig
 
 	// Create a fake Beacon node to hold on to blobs created by the L1 miner, and to serve them to L2
 	bcn := fakebeacon.NewBeacon(testlog.Logger(t, log.LevelInfo).New("role", "l1_cl"),
@@ -576,35 +576,35 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 		return nil, err
 	}
 
-	for name := range cfg.Nodes {
-		var ethClient EthInstance
-		if cfg.ExternalL2Shim == "" {
-			node, backend, err := geth.InitL2(name, big.NewInt(int64(cfg.DeployConfig.L2ChainID)), l2Genesis, cfg.JWTFilePath, cfg.GethOptions[name]...)
-			if err != nil {
-				return nil, err
-			}
-			gethInst := &GethInstance{
-				Backend: backend,
-				Node:    node,
-			}
-			err = gethInst.Node.Start()
-			if err != nil {
-				return nil, err
-			}
-			ethClient = gethInst
-		} else {
-			if len(cfg.GethOptions[name]) > 0 {
-				t.Skip("External L2 nodes do not support configuration through GethOptions")
-			}
-			ethClient = (&ExternalRunner{
-				Name:    name,
-				BinPath: cfg.ExternalL2Shim,
-				Genesis: l2Genesis,
-				JWTPath: cfg.JWTFilePath,
-			}).Run(t)
-		}
-		sys.EthInstances[name] = ethClient
-	}
+	// for name := range cfg.Nodes {
+	// 	var ethClient EthInstance
+	// 	if cfg.ExternalL2Shim == "" {
+	// 		node, backend, err := geth.InitL2(name, big.NewInt(int64(cfg.DeployConfig.L2ChainID)), l2Genesis, cfg.JWTFilePath, cfg.GethOptions[name]...)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		gethInst := &GethInstance{
+	// 			Backend: backend,
+	// 			Node:    node,
+	// 		}
+	// 		err = gethInst.Node.Start()
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		ethClient = gethInst
+	// 	} else {
+	// 		if len(cfg.GethOptions[name]) > 0 {
+	// 			t.Skip("External L2 nodes do not support configuration through GethOptions")
+	// 		}
+	// 		ethClient = (&ExternalRunner{
+	// 			Name:    name,
+	// 			BinPath: cfg.ExternalL2Shim,
+	// 			Genesis: l2Genesis,
+	// 			JWTPath: cfg.JWTFilePath,
+	// 		}).Run(t)
+	// 	}
+	// 	sys.EthInstances[name] = ethClient
+	// }
 
 	// Configure connections to L1 and L2 for rollup nodes.
 	// TODO: refactor testing to allow use of in-process rpc connections instead
@@ -651,236 +651,6 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 		sys.L2OutputSubmitter = nil
 		return sys, nil
 	}
-
-	p2pNodes := make(map[string]*p2p.Prepared)
-	if cfg.P2PTopology != nil {
-		// create the peer if it doesn't exist yet.
-		initHostMaybe := func(name string) (*p2p.Prepared, error) {
-			if p, ok := p2pNodes[name]; ok {
-				return p, nil
-			}
-			h, err := sys.newMockNetPeer()
-			if err != nil {
-				return nil, fmt.Errorf("failed to init p2p host for node %s", name)
-			}
-			h.Network()
-			_, ok := cfg.Nodes[name]
-			if !ok {
-				return nil, fmt.Errorf("node %s from p2p topology not found in actual nodes map", name)
-			}
-			// TODO we can enable discv5 in the testnodes to test discovery of new peers.
-			// Would need to mock though, and the discv5 implementation does not provide nice mocks here.
-			p := &p2p.Prepared{
-				HostP2P:           h,
-				LocalNode:         nil,
-				UDPv5:             nil,
-				EnableReqRespSync: cfg.P2PReqRespSync,
-			}
-			p2pNodes[name] = p
-			return p, nil
-		}
-		for k, vs := range cfg.P2PTopology {
-			peerA, err := initHostMaybe(k)
-			if err != nil {
-				return nil, fmt.Errorf("failed to setup mocknet peer %s", k)
-			}
-			for _, v := range vs {
-				v = strings.TrimPrefix(v, "~")
-				peerB, err := initHostMaybe(v)
-				if err != nil {
-					return nil, fmt.Errorf("failed to setup mocknet peer %s (peer of %s)", v, k)
-				}
-				if _, err := sys.Mocknet.LinkPeers(peerA.HostP2P.ID(), peerB.HostP2P.ID()); err != nil {
-					return nil, fmt.Errorf("failed to setup mocknet link between %s and %s", k, v)
-				}
-				// connect the peers after starting the full rollup node
-			}
-		}
-	}
-
-	// Rollup nodes
-	if config.NewFaultProof {
-		sys.BatchSubmitter = nil
-		sys.L2OutputSubmitter = nil
-		return sys, nil
-	}
-
-	// Ensure we are looping through the nodes in alphabetical order
-	ks := make([]string, 0, len(cfg.Nodes))
-	for k := range cfg.Nodes {
-		ks = append(ks, k)
-	}
-	// Sort strings in ascending alphabetical order
-	sort.Strings(ks)
-
-	for _, name := range ks {
-		nodeConfig := cfg.Nodes[name]
-		c := *nodeConfig // copy
-		c.Rollup = makeRollupConfig()
-		if err := c.LoadPersisted(cfg.Loggers[name]); err != nil {
-			return nil, err
-		}
-
-		if p, ok := p2pNodes[name]; ok {
-			c.P2P = p
-
-			if c.Driver.SequencerEnabled && c.P2PSigner == nil {
-				c.P2PSigner = &p2p.PreparedSigner{Signer: p2p.NewLocalSigner(cfg.Secrets.SequencerP2P)}
-			}
-		}
-
-		c.Rollup.LogDescription(cfg.Loggers[name], chaincfg.L2ChainIDToNetworkDisplayName)
-		l := cfg.Loggers[name]
-		var cycle cliapp.Lifecycle
-		c.Cancel = func(errCause error) {
-			l.Warn("node requested early shutdown!", "err", errCause)
-			go func() {
-				postCtx, postCancel := context.WithCancel(context.Background())
-				postCancel() // don't allow the stopping to continue for longer than needed
-				if err := cycle.Stop(postCtx); err != nil {
-					t.Error(err)
-				}
-				l.Warn("closed op-node!")
-			}()
-		}
-		node, err := rollupNode.New(context.Background(), &c, l, "", metrics.NewMetrics(""))
-		if err != nil {
-			return nil, err
-		}
-		cycle = node
-		err = node.Start(context.Background())
-		if err != nil {
-			return nil, err
-		}
-		sys.RollupNodes[name] = node
-
-		if action, ok := opts.Get("afterRollupNodeStart", name); ok {
-			action(&cfg, sys)
-		}
-	}
-	if config.NewFaultProof {
-		sys.BatchSubmitter = nil
-		sys.L2OutputSubmitter = nil
-		return sys, nil
-	}
-
-	if cfg.P2PTopology != nil {
-		// We only set up the connections after starting the actual nodes,
-		// so GossipSub and other p2p protocols can be started before the connections go live.
-		// This way protocol negotiation happens correctly.
-		for k, vs := range cfg.P2PTopology {
-			peerA := p2pNodes[k]
-			for _, v := range vs {
-				unconnected := strings.HasPrefix(v, "~")
-				if unconnected {
-					v = v[1:]
-				}
-				if !unconnected {
-					peerB := p2pNodes[v]
-					if _, err := sys.Mocknet.ConnectPeers(peerA.HostP2P.ID(), peerB.HostP2P.ID()); err != nil {
-						return nil, fmt.Errorf("failed to setup mocknet connection between %s and %s", k, v)
-					}
-				}
-			}
-		}
-	}
-
-	// Don't start batch submitter and proposer if there's no sequencer.
-	if sys.RollupNodes["sequencer"] == nil {
-		return sys, nil
-	}
-
-	// L2Output Submitter
-	var proposerCLIConfig *l2os.CLIConfig
-	if e2eutils.UseFaultProofs() {
-		proposerCLIConfig = &l2os.CLIConfig{
-			L1EthRpc:          sys.EthInstances["l1"].WSEndpoint(),
-			RollupRpc:         sys.RollupNodes["sequencer"].HTTPEndpoint(),
-			DGFAddress:        config.L1Deployments.DisputeGameFactoryProxy.Hex(),
-			ProposalInterval:  6 * time.Second,
-			DisputeGameType:   254, // Fast game type
-			PollInterval:      50 * time.Millisecond,
-			TxMgrConfig:       newTxMgrConfig(sys.EthInstances["l1"].WSEndpoint(), cfg.Secrets.Proposer),
-			AllowNonFinalized: cfg.NonFinalizedProposals,
-			LogConfig: oplog.CLIConfig{
-				Level:  log.LvlInfo,
-				Format: oplog.FormatText,
-			},
-		}
-	} else {
-		proposerCLIConfig = &l2os.CLIConfig{
-			L1EthRpc:          sys.EthInstances["l1"].WSEndpoint(),
-			RollupRpc:         sys.RollupNodes["sequencer"].HTTPEndpoint(),
-			L2OOAddress:       config.L1Deployments.L2OutputOracleProxy.Hex(),
-			PollInterval:      50 * time.Millisecond,
-			TxMgrConfig:       newTxMgrConfig(sys.EthInstances["l1"].WSEndpoint(), cfg.Secrets.Proposer),
-			AllowNonFinalized: cfg.NonFinalizedProposals,
-			LogConfig: oplog.CLIConfig{
-				Level:  log.LvlInfo,
-				Format: oplog.FormatText,
-			},
-		}
-	}
-	proposer, err := l2os.ProposerServiceFromCLIConfig(context.Background(), "0.0.1", proposerCLIConfig, sys.Cfg.Loggers["proposer"])
-	if err != nil {
-		return nil, fmt.Errorf("unable to setup l2 output submitter: %w", err)
-	}
-	if err := proposer.Start(context.Background()); err != nil {
-		return nil, fmt.Errorf("unable to start l2 output submitter: %w", err)
-	}
-	sys.L2OutputSubmitter = proposer
-
-	var batchType uint = derive.SingularBatchType
-	if cfg.DeployConfig.L2GenesisDeltaTimeOffset != nil && *cfg.DeployConfig.L2GenesisDeltaTimeOffset == hexutil.Uint64(0) {
-		batchType = derive.SpanBatchType
-	}
-	// batcher defaults if unset
-	batcherMaxL1TxSizeBytes := cfg.BatcherMaxL1TxSizeBytes
-	if batcherMaxL1TxSizeBytes == 0 {
-		batcherMaxL1TxSizeBytes = 120_000
-	}
-	batcherTargetNumFrames := cfg.BatcherTargetNumFrames
-	if batcherTargetNumFrames == 0 {
-		batcherTargetNumFrames = 1
-	}
-
-	var compressionAlgo derive.CompressionAlgo = derive.Zlib
-	// if opt has brotli key, set the compression algo as brotli
-	if _, ok := opts.Get("compressionAlgo", "brotli"); ok {
-		compressionAlgo = derive.Brotli10
-	}
-
-	batcherCLIConfig := &bss.CLIConfig{
-		L1EthRpc:                 sys.EthInstances["l1"].WSEndpoint(),
-		L2EthRpc:                 sys.EthInstances["sequencer"].WSEndpoint(),
-		RollupRpc:                sys.RollupNodes["sequencer"].HTTPEndpoint(),
-		MaxPendingTransactions:   cfg.MaxPendingTransactions,
-		MaxChannelDuration:       1,
-		MaxL1TxSize:              batcherMaxL1TxSizeBytes,
-		TestUseMaxTxSizeForBlobs: cfg.BatcherUseMaxTxSizeForBlobs,
-		TargetNumFrames:          int(batcherTargetNumFrames),
-		ApproxComprRatio:         0.4,
-		SubSafetyMargin:          4,
-		PollInterval:             50 * time.Millisecond,
-		TxMgrConfig:              newTxMgrConfig(sys.EthInstances["l1"].WSEndpoint(), cfg.Secrets.Batcher),
-		LogConfig: oplog.CLIConfig{
-			Level:  log.LevelInfo,
-			Format: oplog.FormatText,
-		},
-		Stopped:              sys.Cfg.DisableBatcher, // Batch submitter may be enabled later
-		BatchType:            batchType,
-		DataAvailabilityType: sys.Cfg.DataAvailabilityType,
-		CompressionAlgo:      compressionAlgo,
-	}
-	// Batch Submitter
-	batcher, err := bss.BatcherServiceFromCLIConfig(context.Background(), "0.0.1", batcherCLIConfig, sys.Cfg.Loggers["batcher"])
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup batch submitter: %w", err)
-	}
-	if err := batcher.Start(context.Background()); err != nil {
-		return nil, errors.Join(fmt.Errorf("failed to start batch submitter: %w", err), batcher.Stop(context.Background()))
-	}
-	sys.BatchSubmitter = batcher
 
 	return sys, nil
 }
