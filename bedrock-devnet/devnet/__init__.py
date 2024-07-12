@@ -104,7 +104,7 @@ def main():
 
     if args.l1_allocs:
         devnet_fp_l1_allocs(paths)
-        devnet_fp_l2_allocs(paths)
+        # devnet_fp_l2_allocs(paths)
         return
 
     if args.allocs:

@@ -119,7 +119,9 @@ func init() {
 		name := "allocs-l2-" + string(mode)
 		allocs, err := foundry.LoadForgeAllocs(filepath.Join(l2AllocsDir, name+".json"))
 		if err != nil {
-			panic(err)
+			if !NewFaultProof {
+				panic(err)
+			}
 		}
 		l2Allocs[mode] = allocs
 	}

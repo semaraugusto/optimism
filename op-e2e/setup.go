@@ -611,9 +611,11 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 	// of only websockets (which are required for external eth client tests).
 	for name, nodeCfg := range cfg.Nodes {
 		configureL1(nodeCfg, sys.EthInstances["l1"])
-		configureL2(nodeCfg, sys.EthInstances[name], cfg.JWTSecret)
-		if sys.RollupConfig.EcotoneTime != nil {
-			nodeCfg.Beacon = &rollupNode.L1BeaconEndpointConfig{BeaconAddr: sys.L1BeaconAPIAddr}
+		if !config.NewFaultProof {
+			configureL2(nodeCfg, sys.EthInstances[name], cfg.JWTSecret)
+			if sys.RollupConfig.EcotoneTime != nil {
+				nodeCfg.Beacon = &rollupNode.L1BeaconEndpointConfig{BeaconAddr: sys.L1BeaconAPIAddr}
+			}
 		}
 	}
 
@@ -644,6 +646,11 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 	}
 
 	sys.Mocknet = mocknet.New()
+	if config.NewFaultProof {
+		sys.BatchSubmitter = nil
+		sys.L2OutputSubmitter = nil
+		return sys, nil
+	}
 
 	p2pNodes := make(map[string]*p2p.Prepared)
 	if cfg.P2PTopology != nil {

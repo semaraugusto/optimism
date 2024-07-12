@@ -50,9 +50,9 @@ func WithSequencerWindowSize(size uint64) faultDisputeConfigOpts {
 func StartNewFaultDisputeSystem(t *testing.T, opts ...faultDisputeConfigOpts) (*op_e2e.System, *ethclient.Client) {
 	cfg := op_e2e.DefaultSystemConfig(t)
 	delete(cfg.Nodes, "verifier")
-	// delete(cfg.Nodes, "sequencer")
+	delete(cfg.Nodes, "sequencer")
 	cfg.L1AllocsOnly = true
-	cfg.Nodes["sequencer"].SafeDBPath = t.TempDir()
+	// cfg.Nodes["sequencer"].SafeDBPath = t.TempDir()
 	cfg.DeployConfig.SequencerWindowSize = 4
 	cfg.DeployConfig.FinalizationPeriodSeconds = 2
 	cfg.SupportL1TimeTravel = true
