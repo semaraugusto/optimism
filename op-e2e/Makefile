@@ -36,8 +36,20 @@ test-fault-proofs: pre-test
 	$(go_test) $(go_test_flags) ./faultproofs
 .PHONY: test-faultproofs
 
-test-new:
-	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputAlphabetGame_ChallengerWinsNew -new-allocs=true
+test-new: op-challenger
+	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputExecutionGame_ChallengerWins -new-allocs=true
+.PHONY: test-new
+
+test-val: op-challenger
+	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputExecutionGame_ChallengerWins -new-allocs=true
+.PHONY: test-new
+
+test-exe: op-challenger
+	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputExecutionGame -new-allocs=true
+.PHONY: test-new
+
+test-valid:
+	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputAlphabetGame_ValidOutputRoot
 .PHONY: test-new
 
 test-old:
@@ -56,6 +68,10 @@ cannon-prestate:
 devnet-allocs: pre-test-cannon
 	make -C .. devnet-allocs
 .PHONY: devnet-allocs
+
+op-challenger:
+	make -C .. op-challenger
+.PHONY: op-challenger
 
 pre-test: pre-test-cannon pre-test-allocs
 .PHONY: pre-test

@@ -692,6 +692,11 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 	}
 
 	// Rollup nodes
+	if config.NewFaultProof {
+		sys.BatchSubmitter = nil
+		sys.L2OutputSubmitter = nil
+		return sys, nil
+	}
 
 	// Ensure we are looping through the nodes in alphabetical order
 	ks := make([]string, 0, len(cfg.Nodes))
@@ -745,6 +750,11 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 		if action, ok := opts.Get("afterRollupNodeStart", name); ok {
 			action(&cfg, sys)
 		}
+	}
+	if config.NewFaultProof {
+		sys.BatchSubmitter = nil
+		sys.L2OutputSubmitter = nil
+		return sys, nil
 	}
 
 	if cfg.P2PTopology != nil {
@@ -813,10 +823,6 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 	}
 	sys.L2OutputSubmitter = proposer
 
-	if config.NewFaultProof {
-		sys.BatchSubmitter = nil
-		return sys, nil
-	}
 	var batchType uint = derive.SingularBatchType
 	if cfg.DeployConfig.L2GenesisDeltaTimeOffset != nil && *cfg.DeployConfig.L2GenesisDeltaTimeOffset == hexutil.Uint64(0) {
 		batchType = derive.SpanBatchType

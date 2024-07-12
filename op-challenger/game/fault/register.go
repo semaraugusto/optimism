@@ -68,6 +68,12 @@ func RegisterGameTypes(
 	selective bool,
 	claimants []common.Address,
 ) (CloseFunc, error) {
+	if cfg.NoLayer2 {
+		if err := registerExecution(faultTypes.ExecutionGameType, registry, oracles, ctx, systemClock, l1Clock, logger, m, nil, rollupClient, nil, txSender, gameFactory, caller, l1HeaderSource, selective, claimants); err != nil {
+			return nil, fmt.Errorf("failed to register execution game type: %w", err)
+		}
+		return func() {}, nil
+	}
 	l2Client, err := ethclient.DialContext(ctx, cfg.L2Rpc)
 	if err != nil {
 		return nil, fmt.Errorf("dial l2 client %v: %w", cfg.L2Rpc, err)

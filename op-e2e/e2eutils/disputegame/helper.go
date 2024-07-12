@@ -305,7 +305,9 @@ func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node stri
 }
 
 func (h *FactoryHelper) CreateBisectionGameExtraData(l2Node string, l2BlockNumber uint64, cfg *GameCfg) []byte {
-	h.WaitForBlock(l2Node, l2BlockNumber, cfg)
+	if l2Node != "mock" {
+		h.WaitForBlock(l2Node, l2BlockNumber, cfg)
+	}
 	h.T.Logf("Creating game with l2 block number: %v", l2BlockNumber)
 	extraData := make([]byte, 32)
 	binary.BigEndian.PutUint64(extraData[24:], l2BlockNumber)

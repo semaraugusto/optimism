@@ -288,12 +288,12 @@ func (c Config) CheckFP() error {
 	if c.L1Beacon == "" {
 		return ErrMissingL1Beacon
 	}
-	if c.RollupRpc == "" {
-		return ErrMissingRollupRpc
-	}
-	if c.L2Rpc == "" {
-		return ErrMissingL2Rpc
-	}
+	// if c.RollupRpc == "" {
+	// 	return ErrMissingRollupRpc
+	// }
+	// if c.L2Rpc == "" {
+	// 	return ErrMissingL2Rpc
+	// }
 	if c.GameFactoryAddress == (common.Address{}) {
 		return ErrMissingGameFactoryAddress
 	}
