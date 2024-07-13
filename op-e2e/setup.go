@@ -319,6 +319,9 @@ func (sys *System) L1BeaconHTTPClient() *sources.BeaconHTTPClient {
 }
 
 func (sys *System) NodeEndpoint(name string) string {
+	if name == "sequencer" && config.NewFaultProof {
+		return ""
+	}
 	return selectEndpoint(sys.EthInstances[name])
 }
 
@@ -327,6 +330,10 @@ func (sys *System) NodeClient(name string) *ethclient.Client {
 }
 
 func (sys *System) RollupEndpoint(name string) string {
+	if config.NewFaultProof {
+		return ""
+	}
+	// config.NewFaultProof
 	return sys.RollupNodes[name].HTTPEndpoint()
 }
 
@@ -481,75 +488,6 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 		}
 	}
 
-	// l1Block := l1Genesis.ToBlock()
-	// var allocsMode genesis.L2AllocsMode
-	// allocsMode = genesis.L2AllocsDelta
-	// if fjordTime := cfg.DeployConfig.FjordTime(l1Block.Time()); fjordTime != nil && *fjordTime <= 0 {
-	// 	allocsMode = genesis.L2AllocsFjord
-	// } else if ecotoneTime := cfg.DeployConfig.EcotoneTime(l1Block.Time()); ecotoneTime != nil && *ecotoneTime <= 0 {
-	// 	allocsMode = genesis.L2AllocsEcotone
-	// }
-	// t.Log("Generating L2 genesis", "l2_allocs_mode", string(allocsMode))
-	// l2Allocs := config.L2Allocs(allocsMode)
-	// l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l2Allocs, l1Block)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// sys.L2GenesisCfg = l2Genesis
-	// for addr, amount := range cfg.Premine {
-	// 	if existing, ok := l2Genesis.Alloc[addr]; ok {
-	// 		l2Genesis.Alloc[addr] = types.Account{
-	// 			Code:    existing.Code,
-	// 			Storage: existing.Storage,
-	// 			Balance: amount,
-	// 			Nonce:   existing.Nonce,
-	// 		}
-	// 	} else {
-	// 		l2Genesis.Alloc[addr] = types.Account{
-	// 			Balance: amount,
-	// 			Nonce:   0,
-	// 		}
-	// 	}
-	// }
-
-	// makeRollupConfig := func() rollup.Config {
-	// 	return rollup.Config{
-	// 		Genesis: rollup.Genesis{
-	// 			L1: eth.BlockID{
-	// 				Hash:   l1Block.Hash(),
-	// 				Number: 0,
-	// 			},
-	// 			L2: eth.BlockID{
-	// 				Hash:   l2Genesis.ToBlock().Hash(),
-	// 				Number: 0,
-	// 			},
-	// 			L2Time:       uint64(cfg.DeployConfig.L1GenesisBlockTimestamp),
-	// 			SystemConfig: e2eutils.SystemConfigFromDeployConfig(cfg.DeployConfig),
-	// 		},
-	// 		BlockTime:               cfg.DeployConfig.L2BlockTime,
-	// 		MaxSequencerDrift:       cfg.DeployConfig.MaxSequencerDrift,
-	// 		SeqWindowSize:           cfg.DeployConfig.SequencerWindowSize,
-	// 		ChannelTimeout:          cfg.DeployConfig.ChannelTimeout,
-	// 		L1ChainID:               cfg.L1ChainIDBig(),
-	// 		L2ChainID:               cfg.L2ChainIDBig(),
-	// 		BatchInboxAddress:       cfg.DeployConfig.BatchInboxAddress,
-	// 		DepositContractAddress:  cfg.DeployConfig.OptimismPortalProxy,
-	// 		L1SystemConfigAddress:   cfg.DeployConfig.SystemConfigProxy,
-	// 		RegolithTime:            cfg.DeployConfig.RegolithTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-	// 		CanyonTime:              cfg.DeployConfig.CanyonTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-	// 		DeltaTime:               cfg.DeployConfig.DeltaTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-	// 		EcotoneTime:             cfg.DeployConfig.EcotoneTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-	// 		FjordTime:               cfg.DeployConfig.FjordTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-	// 		InteropTime:             cfg.DeployConfig.InteropTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
-	// 		ProtocolVersionsAddress: cfg.L1Deployments.ProtocolVersionsProxy,
-	// 	}
-	// }
-	// defaultConfig := makeRollupConfig()
-	// if err := defaultConfig.Check(); err != nil {
-	// 	return nil, err
-	// }
-	// sys.RollupConfig = &defaultConfig
-
 	// Create a fake Beacon node to hold on to blobs created by the L1 miner, and to serve them to L2
 	bcn := fakebeacon.NewBeacon(testlog.Logger(t, log.LevelInfo).New("role", "l1_cl"),
 		path.Join(cfg.BlobsPath, "l1_cl"), l1Genesis.Timestamp, cfg.DeployConfig.L1BlockTime)
@@ -575,36 +513,6 @@ func (cfg SystemConfig) StartFP(t *testing.T, _opts ...SystemConfigOption) (*Sys
 	if err != nil {
 		return nil, err
 	}
-
-	// for name := range cfg.Nodes {
-	// 	var ethClient EthInstance
-	// 	if cfg.ExternalL2Shim == "" {
-	// 		node, backend, err := geth.InitL2(name, big.NewInt(int64(cfg.DeployConfig.L2ChainID)), l2Genesis, cfg.JWTFilePath, cfg.GethOptions[name]...)
-	// 		if err != nil {
-	// 			return nil, err
-	// 		}
-	// 		gethInst := &GethInstance{
-	// 			Backend: backend,
-	// 			Node:    node,
-	// 		}
-	// 		err = gethInst.Node.Start()
-	// 		if err != nil {
-	// 			return nil, err
-	// 		}
-	// 		ethClient = gethInst
-	// 	} else {
-	// 		if len(cfg.GethOptions[name]) > 0 {
-	// 			t.Skip("External L2 nodes do not support configuration through GethOptions")
-	// 		}
-	// 		ethClient = (&ExternalRunner{
-	// 			Name:    name,
-	// 			BinPath: cfg.ExternalL2Shim,
-	// 			Genesis: l2Genesis,
-	// 			JWTPath: cfg.JWTFilePath,
-	// 		}).Run(t)
-	// 	}
-	// 	sys.EthInstances[name] = ethClient
-	// }
 
 	// Configure connections to L1 and L2 for rollup nodes.
 	// TODO: refactor testing to allow use of in-process rpc connections instead
