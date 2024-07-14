@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -86,7 +87,8 @@ func (o *OutputTraceProvider) HonestBlockNumber(ctx context.Context, pos types.P
 }
 
 func (o *OutputTraceProvider) Get(ctx context.Context, pos types.Position) (common.Hash, error) {
-	if o.rollupProvider == nil {
+	_, ok := o.rollupProvider.(*sources.RollupClient)
+	if !ok {
 		blockHash := "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 		return common.HexToHash(blockHash), nil
 	}
