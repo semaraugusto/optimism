@@ -86,13 +86,15 @@ func (o *OutputTraceProvider) HonestBlockNumber(ctx context.Context, pos types.P
 }
 
 func (o *OutputTraceProvider) Get(ctx context.Context, pos types.Position) (common.Hash, error) {
-	// outputBlock, err := o.HonestBlockNumber(ctx, pos)
-	// if err != nil {
-	// 	return common.Hash{}, err
-	// }
-	blockHash := "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
-	return common.HexToHash(blockHash), nil
-	// return o.outputAtBlock(ctx, 0)
+	if o.rollupProvider == nil {
+		blockHash := "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+		return common.HexToHash(blockHash), nil
+	}
+	outputBlock, err := o.HonestBlockNumber(ctx, pos)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return o.outputAtBlock(ctx, outputBlock)
 }
 
 // GetStepData is not supported in the [OutputTraceProvider].
@@ -121,4 +123,12 @@ func (o *OutputTraceProvider) GetL2BlockNumberChallenge(ctx context.Context) (*t
 		return nil, fmt.Errorf("failed to retrieve L2 block header %v: %w", outputBlock, err)
 	}
 	return types.NewInvalidL2BlockNumberProof(output, header), nil
+}
+
+func (o *OutputTraceProvider) outputAtBlock(ctx context.Context, block uint64) (common.Hash, error) {
+	output, err := o.rollupProvider.OutputAtBlock(ctx, block)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("failed to fetch output at block %v: %w", block, err)
+	}
+	return common.Hash(output.OutputRoot), nil
 }
