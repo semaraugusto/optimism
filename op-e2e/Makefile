@@ -3,10 +3,10 @@
 ifdef JUNIT_FILE
 	go_test = OP_TESTLOG_DISABLE_COLOR=true OP_E2E_DISABLE_PARALLEL=false gotestsum --format=testname --junitfile=$(JUNIT_FILE) --jsonfile=$(JSON_LOG_FILE) -- -failfast
   # Note: -parallel must be set to match the number of cores in the resource class
-	go_test_flags = -timeout=60m -parallel=8
+	go_test_flags = -timeout=60m -parallel=8 -count=1
 else
 	go_test = go test
-	# go_test_flags = -v
+	go_test_flags = -count=1
 endif
 
 test: pre-test test-ws
@@ -41,7 +41,7 @@ test-new: op-challenger
 .PHONY: test-new
 
 test-val: op-challenger
-	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputExecutionGame_ChallengerWins -new-allocs=true
+	$(go_test) -v $(go_test_flags) ./faultproofs  -count=1 -run TestOutputExecutionGame_ValidOutputRoot -new-allocs=true
 .PHONY: test-new
 
 test-exe: op-challenger

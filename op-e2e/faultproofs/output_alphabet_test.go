@@ -25,13 +25,13 @@ func TestOutputExecutionGame_ChallengerWins(t *testing.T) {
 
 	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
 	// _ = disputeGameFactory.StartNewOutputAlphabetGame(ctx, "sequencer", 3, common.Hash{0xff})
-	game := disputeGameFactory.StartExecutionGame(ctx, "mock", 1, common.Hash{0xff})
-	correctTrace := game.NewCreateHonestActor(ctx, "sequencer")
+	game := disputeGameFactory.StartExecutionGame(ctx, "sequencer", 1, common.Hash{0xff})
+	correctTrace := game.CreateHonestActor(ctx)
 	// _ = game.CreateHonestActor(ctx, "sequencer")
 	game.LogGameData(ctx)
 
 	opts := challenger.WithPrivKey(sys.Cfg.Secrets.Alice)
-	game.NewStartChallenger(ctx, "sequencer", "Challenger", opts)
+	game.StartChallenger(ctx, "sequencer", "Challenger", opts)
 	game.LogGameData(ctx)
 
 	// Challenger should post an output root to counter claims down to the leaf level of the top game
@@ -69,37 +69,38 @@ func TestOutputExecutionGame_ChallengerWins(t *testing.T) {
 	game.LogGameData(ctx)
 }
 
-// func TestOutputExecutionGame_ValidOutputRoot(t *testing.T) {
-// 	op_e2e.InitParallel(t)
-// 	ctx := context.Background()
-// 	// sys, l1Client := StartFaultDisputeSystem(t)
-// 	sys, l1Client := StartNewFaultDisputeSystem(t)
-// 	t.Cleanup(sys.Close)
-//
-// 	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
-// 	game := disputeGameFactory.StartOutputAlphabetGameWithCorrectRoot(ctx, "sequencer", 2)
-// 	correctTrace := game.CreateHonestActor(ctx, "sequencer")
-// 	game.LogGameData(ctx)
-// 	claim := game.DisputeLastBlock(ctx)
-// 	// Invalid root claim of the alphabet game
-// 	claim = claim.Attack(ctx, common.Hash{0x01})
-//
-// 	opts := challenger.WithPrivKey(sys.Cfg.Secrets.Alice)
-// 	game.StartChallenger(ctx, "sequencer", "Challenger", opts)
-//
-// 	claim = claim.WaitForCounterClaim(ctx)
-// 	game.LogGameData(ctx)
-// 	for !claim.IsMaxDepth(ctx) {
-// 		// Dishonest actor always attacks with the correct trace
-// 		claim = correctTrace.AttackClaim(ctx, claim)
-// 		claim = claim.WaitForCounterClaim(ctx)
-// 		game.LogGameData(ctx)
-// 	}
-//
-// 	sys.TimeTravelClock.AdvanceTime(game.MaxClockDuration(ctx))
-// 	require.NoError(t, wait.ForNextBlock(ctx, l1Client))
-// 	game.WaitForGameStatus(ctx, types.GameStatusDefenderWon)
-// }
+func TestOutputExecutionGame_ValidOutputRoot(t *testing.T) {
+	op_e2e.InitParallel(t)
+	ctx := context.Background()
+	// sys, l1Client := StartFaultDisputeSystem(t)
+	sys, l1Client := StartNewFaultDisputeSystem(t)
+	t.Cleanup(sys.Close)
+
+	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
+	// game := disputeGameFactory.StartOutputAlphabetGameWithCorrectRoot(ctx, "sequencer", 2)
+	game := disputeGameFactory.StartExecutionGameWithCorrectRoot(ctx, "mock", 1)
+	correctTrace := game.CreateHonestActor(ctx, "sequencer")
+	game.LogGameData(ctx)
+	claim := game.DisputeLastBlock(ctx)
+	// Invalid root claim of the alphabet game
+	claim = claim.Attack(ctx, common.Hash{0x01})
+
+	opts := challenger.WithPrivKey(sys.Cfg.Secrets.Alice)
+	game.StartChallenger(ctx, "sequencer", "Challenger", opts)
+
+	claim = claim.WaitForCounterClaim(ctx)
+	game.LogGameData(ctx)
+	for !claim.IsMaxDepth(ctx) {
+		// Dishonest actor always attacks with the correct trace
+		claim = correctTrace.AttackClaim(ctx, claim)
+		claim = claim.WaitForCounterClaim(ctx)
+		game.LogGameData(ctx)
+	}
+
+	sys.TimeTravelClock.AdvanceTime(game.MaxClockDuration(ctx))
+	require.NoError(t, wait.ForNextBlock(ctx, l1Client))
+	game.WaitForGameStatus(ctx, types.GameStatusDefenderWon)
+}
 
 func TestOutputAlphabetGame_ChallengerWinsOld(t *testing.T) {
 	op_e2e.InitParallel(t)

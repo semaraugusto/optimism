@@ -170,7 +170,6 @@ func NewChallengerConfig(t *testing.T, sys EndpointProvider, l2NodeName string, 
 	l1Endpoint := sys.NodeEndpoint("l1")
 	l1Beacon := sys.L1BeaconEndpoint()
 	cfg := config.NewConfig(common.Address{}, l1Endpoint, l1Beacon, sys.RollupEndpoint(l2NodeName), sys.NodeEndpoint(l2NodeName), t.TempDir())
-	// cfg := config.NewConfig(common.Address{}, l1Endpoint, l1Beacon, "", "", t.TempDir())
 	// The devnet can't set the absolute prestate output root because the contracts are deployed in L1 genesis
 	// before the L2 genesis is known.
 	cfg.AllowInvalidPrestate = true
@@ -189,7 +188,7 @@ func NewChallengerConfig(t *testing.T, sys EndpointProvider, l2NodeName string, 
 		option(&cfg)
 	}
 	require.NotEmpty(t, cfg.TxMgrConfig.PrivateKey, "Missing private key for TxMgrConfig")
-	require.NoError(t, cfg.CheckFP(), "op-challenger config should be valid")
+	require.NoError(t, cfg.Check(), "op-challenger config should be valid")
 
 	if cfg.Cannon.VmBin != "" {
 		_, err := os.Stat(cfg.Cannon.VmBin)

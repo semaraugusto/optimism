@@ -226,7 +226,15 @@ func (h *FactoryHelper) StartOutputAlphabetGameWithCorrectRoot(ctx context.Conte
 	return h.StartOutputAlphabetGame(ctx, l2Node, l2BlockNumber, common.Hash(output.OutputRoot))
 }
 
-func (h *FactoryHelper) StartExecutionGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputAlphabetGameHelper {
+func (h *FactoryHelper) StartExecutionGameWithCorrectRoot(ctx context.Context, l2Node string, l2BlockNumber uint64, opts ...GameOpt) *OutputExecutionGameHelper {
+	cfg := NewGameCfg(opts...)
+	h.WaitForBlock(l2Node, l2BlockNumber, cfg)
+	output, err := h.System.RollupClient(l2Node).OutputAtBlock(ctx, l2BlockNumber)
+	h.Require.NoErrorf(err, "Failed to get output at block %v", l2BlockNumber)
+	return h.StartExecutionGame(ctx, l2Node, l2BlockNumber, common.Hash(output.OutputRoot))
+}
+
+func (h *FactoryHelper) StartExecutionGame(ctx context.Context, l2Node string, l2BlockNumber uint64, rootClaim common.Hash, opts ...GameOpt) *OutputExecutionGameHelper {
 	cfg := NewGameCfg(opts...)
 	// logger := testlog.Logger(h.T, log.LevelInfo).New("role", "OutputAlphabetGameHelper")
 
@@ -253,14 +261,9 @@ func (h *FactoryHelper) StartExecutionGame(ctx context.Context, l2Node string, l
 	h.Require.NoError(err, "Failed to load prestate hash")
 	splitDepth, err := game.GetSplitDepth(ctx)
 	h.Require.NoError(err, "Failed to load split depth")
-	// l1Head := h.GetL1Head(ctx, game)
-	// prestateProvider := execution.NewExecutionPrestateProvider(prestateHash.Bytes(), prestateBlock)
-	// prestateProvider := execution.NewExecutionPrestateProvider()
-
-	// provider := execution.NewTraceProvider(logger, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
 	provider := execution.NewTraceProvider(big.NewInt(int64(prestateBlock)), splitDepth)
 
-	return &OutputAlphabetGameHelper{
+	return &OutputExecutionGameHelper{
 		OutputGameHelper: *NewOutputGameHelper(h.T, h.Require, h.Client, h.Opts, h.PrivKey, game, h.FactoryAddr, createdEvent.DisputeProxy, provider, h.System),
 	}
 }
@@ -305,7 +308,7 @@ func (h *FactoryHelper) StartOutputAlphabetGame(ctx context.Context, l2Node stri
 }
 
 func (h *FactoryHelper) CreateBisectionGameExtraData(l2Node string, l2BlockNumber uint64, cfg *GameCfg) []byte {
-	if l2Node != "mock" {
+	if h.System.NodeEndpoint(l2Node) != "" {
 		h.WaitForBlock(l2Node, l2BlockNumber, cfg)
 	}
 	h.T.Logf("Creating game with l2 block number: %v", l2BlockNumber)
